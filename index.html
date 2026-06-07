@@ -1,0 +1,1988 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>달의 위상 여행</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%;
+    font-family: 'Jua', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+    background: linear-gradient(180deg, #0a0e27 0%, #1a1f4e 100%);
+    color: #f4f1de;
+    overflow: hidden;
+  }
+  body { display: flex; flex-direction: column; }
+
+  header {
+    padding: 8px 16px;
+    background: rgba(0,0,0,0.4);
+    border-bottom: 2px solid #ffd166;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+    gap: 16px;
+  }
+  header h1 { font-size: 22px; color: #ffd166; }
+  .mode-toggle {
+    display: flex;
+    gap: 6px;
+    background: rgba(0,0,0,0.6);
+    padding: 6px;
+    border-radius: 30px;
+    border: 2px solid rgba(255,209,102,0.4);
+  }
+  .mode-btn {
+    background: transparent;
+    color: #ccc;
+    border: none;
+    padding: 12px 28px;
+    border-radius: 24px;
+    cursor: pointer;
+    font-size: 19px;
+    font-weight: bold;
+    transition: all 0.2s;
+  }
+  .mode-btn:hover { color: #fff; background: rgba(255,255,255,0.08); }
+  .mode-btn.active {
+    background: linear-gradient(135deg, #ffd166, #ef8354);
+    color: #1a1f4e;
+    box-shadow: 0 3px 10px rgba(255,209,102,0.4);
+    transform: scale(1.04);
+  }
+  .mode-btn[data-mode="challenge"].active {
+    background: linear-gradient(135deg, #6cd5b3, #4eb8a0);
+    color: #1a1f4e;
+    box-shadow: 0 3px 10px rgba(108,213,179,0.5);
+  }
+
+  .quick-info { display: flex; gap: 14px; align-items: center; font-size: 15px; }
+  .quick-info b { color: #ffd166; font-size: 22px; }
+  .phase-badge {
+    background: #ef8354;
+    color: #fff;
+    padding: 5px 14px;
+    border-radius: 18px;
+    font-weight: bold;
+    font-size: 16px;
+  }
+
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px;
+    min-height: 0;
+  }
+
+  .hero {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1.3fr;
+    gap: 10px;
+    min-height: 0;
+  }
+
+  .big-moon-wrap {
+    background: rgba(0,0,0,0.35);
+    border-radius: 12px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    min-height: 0;
+  }
+  .big-moon-wrap canvas#bigMoon {
+    flex: 1;
+    width: 100%;
+    min-height: 0;
+    display: block;
+  }
+  .big-moon-label {
+    margin-top: 4px;
+    color: #ffd166;
+    font-size: 14px;
+    font-weight: bold;
+  }
+  .info-card, .challenge-card {
+    background: rgba(0,0,0,0.35);
+    border-radius: 12px;
+    padding: 16px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+    border-left: 4px solid #ef8354;
+    min-height: 0;
+    grid-column: 2;
+    grid-row: 1;
+  }
+  /* hidden 속성이 display:flex에 덮이지 않도록 */
+  .info-card[hidden], .challenge-card[hidden] { display: none !important; }
+
+  /* 도전 모드일 때 답을 알려주는 UI 숨김 */
+  body.mode-challenge #phaseBadge,
+  body.mode-challenge .phase-shortcuts {
+    display: none;
+  }
+  body.mode-challenge .quick-info::after {
+    content: '🎯 도전 중';
+    background: #6cd5b3;
+    color: #1a1f4e;
+    padding: 5px 14px;
+    border-radius: 18px;
+    font-weight: bold;
+    font-size: 16px;
+  }
+  .info-header {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding-bottom: 14px;
+    border-bottom: 2px solid rgba(255,209,102,0.3);
+  }
+  .info-header h2 { color: #ffd166; font-size: 38px; }
+  .info-header p { color: #a0d8ff; font-size: 19px; margin-top: 6px; }
+  .info-row { font-size: 22px; line-height: 1.9; color: #e9e9e9; }
+  .info-row b { color: #ffd166; display: inline-block; min-width: 130px; }
+  .info-desc {
+    margin-top: 10px;
+    padding: 16px 20px;
+    background: rgba(255,209,102,0.08);
+    border-radius: 8px;
+    font-size: 21px;
+    line-height: 1.9;
+  }
+
+  /* ─── 챌린지 카드 ─── */
+  .challenge-card { border-left-color: #6cd5b3; }
+  .challenge-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(108,213,179,0.3);
+  }
+  .challenge-title { color: #6cd5b3; font-size: 32px; font-weight: bold; }
+  .challenge-meta { display: flex; gap: 20px; font-size: 22px; color: #a0d8ff; }
+  .challenge-meta b { color: #ffd166; font-size: 28px; }
+  .challenge-question {
+    font-size: 26px;
+    line-height: 2.0;
+    background: rgba(108,213,179,0.1);
+    padding: 20px 24px;
+    border-radius: 10px;
+    color: #fff;
+  }
+  .challenge-question b { color: #ffd166; }
+  .challenge-hint-line {
+    font-size: 22px;
+    line-height: 1.8;
+    color: #a0d8ff;
+    font-style: italic;
+  }
+  .challenge-choices {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .choice-btn {
+    background: rgba(108,213,179,0.12);
+    color: #f4f1de;
+    border: 2px solid rgba(108,213,179,0.4);
+    padding: 20px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 24px;
+    line-height: 1.5;
+    transition: all 0.15s;
+  }
+  .choice-btn:hover {
+    background: rgba(108,213,179,0.25);
+    border-color: #6cd5b3;
+  }
+  .choice-btn.selected { background: #6cd5b3; color: #1a1f4e; font-weight: bold; }
+  .choice-btn.correct { background: #6cd5b3; color: #1a1f4e; font-weight: bold; border-color: #6cd5b3; }
+  .choice-btn.wrong { background: #e76f51; color: #fff; border-color: #e76f51; }
+
+  .challenge-feedback {
+    padding: 18px 22px;
+    border-radius: 10px;
+    font-size: 22px;
+    line-height: 1.9;
+    display: none;
+  }
+  .challenge-feedback.correct {
+    background: rgba(108,213,179,0.2);
+    border: 2px solid #6cd5b3;
+    color: #d8fff0;
+    display: block;
+  }
+  .challenge-feedback.wrong {
+    background: rgba(231,111,81,0.2);
+    border: 2px solid #e76f51;
+    color: #ffdcd0;
+    display: block;
+  }
+  .challenge-feedback b { color: #ffd166; }
+
+  #challengeBody {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 100%;
+  }
+  .challenge-bottom {
+    margin-top: auto;
+    padding: 12px 0 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    position: sticky;
+    bottom: -1px;
+    background: linear-gradient(180deg, rgba(20,24,70,0) 0%, rgba(20,24,70,0.92) 18%, rgba(20,24,70,0.96) 100%);
+    z-index: 5;
+  }
+  .challenge-actions { display: flex; gap: 12px; }
+  .challenge-actions .btn { flex: 1; font-size: 22px; padding: 14px 22px; }
+  .challenge-actions .btn.secondary {
+    background: rgba(255,209,102,0.2);
+    color: #ffd166;
+    border: 2px solid #ffd166;
+    flex: 0 0 150px;
+  }
+
+  .challenge-intro {
+    text-align: center;
+    padding: 36px 24px;
+  }
+  .challenge-intro h2 {
+    color: #6cd5b3;
+    font-size: 40px;
+    margin-bottom: 20px;
+    line-height: 1.4;
+  }
+  .challenge-intro p {
+    font-size: 24px;
+    line-height: 2.0;
+    margin-bottom: 28px;
+    color: #e9e9e9;
+  }
+  .challenge-intro .start-btn {
+    background: #6cd5b3;
+    color: #1a1f4e;
+    border: none;
+    padding: 18px 52px;
+    border-radius: 36px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 28px;
+  }
+  .challenge-intro .start-btn:hover { background: #8de4c6; }
+
+  .challenge-end { text-align: center; padding: 28px; }
+  .challenge-end h2 { color: #ffd166; font-size: 40px; margin-bottom: 20px; line-height: 1.4; }
+  .challenge-end .final-score { font-size: 60px; color: #6cd5b3; font-weight: bold; margin: 20px 0; }
+  .challenge-end .grade { font-size: 28px; margin-bottom: 24px; line-height: 1.5; }
+
+  .challenge-end .start-btn {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #6cd5b3 0%, #5ec6f0 45%, #b07ef0 100%);
+    background-size: 200% 200%;
+    color: #1a1f4e;
+    border: none;
+    padding: 20px 60px;
+    border-radius: 44px;
+    font-weight: 800;
+    font-size: 30px;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    box-shadow:
+      0 10px 28px rgba(108, 213, 179, 0.45),
+      0 0 0 2px rgba(255, 255, 255, 0.22) inset,
+      0 0 36px rgba(176, 126, 240, 0.40);
+    transition: transform 0.25s ease, box-shadow 0.25s ease, background-position 0.6s ease;
+    animation: chRestartPulse 2.4s ease-in-out infinite,
+               chRestartShift 6s ease-in-out infinite;
+  }
+  .challenge-end .start-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -140%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.55) 50%, transparent 100%);
+    transform: skewX(-20deg);
+    animation: chRestartSweep 3.2s ease-in-out infinite;
+    pointer-events: none;
+  }
+  .challenge-end .start-btn .restart-icon {
+    display: inline-block;
+    transition: transform 0.5s ease;
+  }
+  .challenge-end .start-btn:hover {
+    transform: translateY(-3px) scale(1.04);
+    box-shadow:
+      0 16px 36px rgba(108, 213, 179, 0.6),
+      0 0 0 2px rgba(255, 255, 255, 0.32) inset,
+      0 0 48px rgba(176, 126, 240, 0.6);
+  }
+  .challenge-end .start-btn:hover .restart-icon {
+    transform: rotate(-360deg);
+  }
+  .challenge-end .start-btn:active {
+    transform: translateY(0) scale(0.98);
+  }
+
+  @keyframes chRestartPulse {
+    0%, 100% {
+      box-shadow:
+        0 10px 28px rgba(108, 213, 179, 0.45),
+        0 0 0 2px rgba(255, 255, 255, 0.22) inset,
+        0 0 36px rgba(176, 126, 240, 0.40);
+    }
+    50% {
+      box-shadow:
+        0 12px 32px rgba(108, 213, 179, 0.65),
+        0 0 0 2px rgba(255, 255, 255, 0.34) inset,
+        0 0 52px rgba(176, 126, 240, 0.65);
+    }
+  }
+  @keyframes chRestartShift {
+    0%, 100% { background-position: 0% 50%; }
+    50%      { background-position: 100% 50%; }
+  }
+  @keyframes chRestartSweep {
+    0%        { left: -140%; }
+    60%, 100% { left: 140%; }
+  }
+
+  /* ─── 30일 일지 (접기) ─── */
+  .diary-section {
+    background: linear-gradient(180deg, rgba(255,209,102,0.06), rgba(10,14,39,0.55));
+    border-radius: 12px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid rgba(255,209,102,0.3);
+  }
+  .diary-toggle {
+    width: 100%;
+    background: transparent;
+    color: #ffd166;
+    border: none;
+    padding: 16px 24px;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: bold;
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.15s;
+  }
+  .diary-toggle:hover { background: rgba(255,209,102,0.15); }
+  .diary-toggle .arrow {
+    font-size: 16px;
+    color: #ef8354;
+    background: rgba(239,131,84,0.15);
+    padding: 6px 14px;
+    border-radius: 16px;
+    border: 1px solid rgba(239,131,84,0.5);
+    white-space: nowrap;
+  }
+  .diary-toggle:hover .arrow {
+    background: rgba(239,131,84,0.3);
+    color: #fff;
+  }
+  .diary-toggle .hint-text {
+    font-size: 13px;
+    color: #a0d8ff;
+    font-weight: normal;
+    margin-left: 12px;
+  }
+  .diary-content {
+    padding: 0 10px 10px;
+    max-height: 260px;
+    overflow: hidden;
+  }
+  .day-grid {
+    display: grid;
+    grid-template-columns: repeat(15, minmax(0, 1fr));
+    grid-template-rows: repeat(2, 1fr);
+    gap: 4px;
+  }
+  .day-cell {
+    background: rgba(0,0,0,0.3);
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border: 2px solid transparent;
+    min-height: 100px;
+    padding: 4px;
+    transition: transform 0.12s, background 0.12s;
+  }
+  .day-cell:hover { background: rgba(255,209,102,0.18); transform: scale(1.05); }
+  .day-cell.active {
+    border-color: #ffd166;
+    background: rgba(255,209,102,0.22);
+    box-shadow: 0 0 10px rgba(255,209,102,0.5);
+  }
+  .day-cell canvas {
+    width: 100%;
+    aspect-ratio: 1;
+    max-height: calc(100% - 30px);
+  }
+  .day-cell .num {
+    font-size: 11px;
+    color: #a0d8ff;
+    margin-top: 2px;
+  }
+  .day-cell.active .num { color: #ffd166; font-weight: bold; }
+  .day-cell .mini-label {
+    font-size: 10px;
+    color: #ffd166;
+    height: 12px;
+  }
+
+  /* ─── footer ─── */
+  footer {
+    background: rgba(0,0,0,0.5);
+    padding: 8px 14px;
+    flex-shrink: 0;
+    border-top: 1px solid rgba(255,209,102,0.3);
+  }
+  .control-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .btn {
+    background: #ffd166;
+    color: #1a1f4e;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 14px;
+    user-select: none;
+  }
+  .btn:hover { background: #ffdb85; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn.sm { padding: 5px 10px; font-size: 13px; }
+  #slider {
+    flex: 1;
+    height: 8px;
+    cursor: pointer;
+    accent-color: #ffd166;
+  }
+  .slider-day-label { min-width: 72px; text-align: right; font-size: 13px; }
+  .slider-day-label b { color: #ffd166; font-size: 15px; }
+  #speedSel {
+    background: #1a1f4e;
+    color: #f4f1de;
+    border: 1px solid #ffd166;
+    padding: 5px 8px;
+    border-radius: 4px;
+    font-size: 13px;
+  }
+  .phase-shortcuts { display: flex; gap: 5px; flex-wrap: wrap; }
+  .phase-shortcuts button {
+    background: rgba(255,209,102,0.15);
+    color: #f4f1de;
+    border: 1px solid rgba(255,209,102,0.5);
+    padding: 4px 11px;
+    border-radius: 14px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.15s;
+  }
+  .phase-shortcuts button:hover {
+    background: rgba(255,209,102,0.35);
+    border-color: #ffd166;
+  }
+  .phase-shortcuts button.active {
+    background: #ffd166;
+    color: #1a1f4e;
+    font-weight: bold;
+  }
+
+  /* ─── 로그인 (학생 선택) 페이지 ─── */
+  #appPage { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+  #appPage[hidden] { display: none; }
+
+  .login-page {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at center, #1a1f4e 0%, #0a0e27 70%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 20px;
+    overflow-y: auto;
+  }
+  .login-page[hidden] { display: none; }
+  .login-card {
+    background: rgba(0,0,0,0.55);
+    border-radius: 20px;
+    padding: 36px 44px;
+    max-width: 540px;
+    width: 100%;
+    text-align: center;
+    border: 2px solid #ffd166;
+    box-shadow: 0 0 40px rgba(255,209,102,0.25);
+  }
+  .login-card h1 {
+    color: #ffd166;
+    font-size: 34px;
+    margin-bottom: 10px;
+  }
+  .login-card .subtitle {
+    color: #f4f1de;
+    font-size: 18px;
+    margin-bottom: 28px;
+    line-height: 1.5;
+  }
+  .login-card .field-label {
+    display: block;
+    text-align: left;
+    color: #a0d8ff;
+    font-size: 15px;
+    font-weight: bold;
+    margin-bottom: 6px;
+  }
+  #studentSelect {
+    width: 100%;
+    padding: 14px 18px;
+    font-size: 19px;
+    background: #1a1f4e;
+    color: #f4f1de;
+    border: 2px solid #ffd166;
+    border-radius: 10px;
+    cursor: pointer;
+    margin-bottom: 20px;
+    font-family: 'Jua', 'Malgun Gothic', sans-serif;
+  }
+  button, input, select, textarea { font-family: 'Jua', 'Malgun Gothic', sans-serif; }
+  #studentSelect:focus { outline: none; border-color: #ef8354; }
+
+  .login-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+  .student-info-box {
+    background: rgba(255,209,102,0.08);
+    border-left: 4px solid #ffd166;
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    text-align: left;
+  }
+  .student-info-box[hidden] { display: none; }
+  .student-info-box h3 {
+    color: #ffd166;
+    font-size: 18px;
+    margin-bottom: 10px;
+  }
+  .student-info-box p {
+    font-size: 16px;
+    line-height: 1.8;
+    margin-bottom: 6px;
+  }
+  .student-info-box b { color: #ffd166; }
+  .student-info-box .empty {
+    color: #a0d8ff;
+    font-style: italic;
+  }
+  .student-info-box .last-score {
+    display: inline-block;
+    background: #6cd5b3;
+    color: #1a1f4e;
+    padding: 4px 14px;
+    border-radius: 14px;
+    font-weight: bold;
+    margin-left: 8px;
+  }
+
+  .history-btn {
+    background: rgba(160,216,255,0.15);
+    color: #a0d8ff;
+    border: 2px solid #a0d8ff;
+    padding: 14px 28px;
+    border-radius: 28px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .history-btn:hover:not(:disabled) {
+    background: rgba(160,216,255,0.3);
+    color: #fff;
+  }
+  .history-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .login-start-btn {
+    background: linear-gradient(135deg, #ffd166, #ef8354);
+    color: #1a1f4e;
+    border: none;
+    padding: 14px 40px;
+    border-radius: 28px;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(255,209,102,0.4);
+    transition: transform 0.15s;
+  }
+  .login-start-btn:hover:not(:disabled) { transform: translateY(-2px); }
+  .login-start-btn:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+
+  .login-status {
+    margin-top: 16px;
+    font-size: 13px;
+    color: #a0d8ff;
+    font-style: italic;
+  }
+
+</style>
+</head>
+<body>
+
+<!-- ─── 로그인 페이지 ─── -->
+<div class="login-page" id="loginPage">
+  <div class="login-card">
+    <h1>🌙 달의 위상 여행</h1>
+    <p class="subtitle">오늘 학습할 학생의 이름을 선택해 주세요</p>
+    <label class="field-label">👤 학생 선택</label>
+    <select id="studentSelect">
+      <option value="">⏳ 학생 명단을 불러오는 중...</option>
+    </select>
+    <div class="login-buttons">
+      <button class="history-btn" id="historyBtn" disabled>📖 학습 기록 확인</button>
+      <button class="login-start-btn" id="loginStartBtn" disabled>학습 시작하기 ▶</button>
+    </div>
+    <div class="student-info-box" id="studentInfo" hidden></div>
+    <div class="login-status" id="loginStatus">학생 명단을 불러오는 중...</div>
+
+    <!-- ⚙️ 선생님용: 내 시트 연결 (학생은 건드릴 필요 없음) -->
+    <button type="button" class="settings-toggle" id="settingsToggle">⚙️ 시트 연결 설정 (선생님용)</button>
+    <div class="settings-panel" id="settingsPanel" hidden>
+      <label class="field-label" for="apiUrlInput">🔗 내 시트(웹앱) 주소</label>
+      <input type="text" id="apiUrlInput" class="settings-input"
+             placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off">
+      <div class="settings-buttons">
+        <button type="button" class="settings-save-btn" id="apiSaveBtn">💾 저장하고 연결</button>
+        <button type="button" class="settings-clear-btn" id="apiClearBtn">연결 해제</button>
+      </div>
+      <p class="settings-hint">
+        스프레드시트 「📖 선생님 가이드」 탭 설명대로 내 시트를 웹앱으로 배포한 뒤,
+        받은 주소(<b>.../exec</b>)를 붙여넣고 저장하세요. 한 번 저장하면 이 기기에 기억되어,
+        그 다음부터 <b>학생은 그냥 들어와 이름만 고르면</b> 됩니다.
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ─── 학습 앱 ─── -->
+<div id="appPage" hidden>
+
+<header>
+  <h1>🌙 달의 위상 여행</h1>
+  <div class="mode-toggle">
+    <button class="mode-btn active" data-mode="explore">🔍 자유 관찰</button>
+    <button class="mode-btn" data-mode="challenge">🎯 도전 모드</button>
+  </div>
+  <div class="quick-info">
+    <span id="headerStudentName" style="color:#a0d8ff; font-size:14px;"></span>
+    <span>음력 <b id="dayNum">1</b>일</span>
+    <span class="phase-badge" id="phaseBadge">삭</span>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="big-moon-wrap">
+      <canvas id="bigMoon"></canvas>
+      <div class="big-moon-label">음력 <span id="bigDayLabel">1</span>일의 달</div>
+    </div>
+
+    <!-- 자유 관찰 모드 -->
+    <div class="info-card" id="infoCard">
+      <div class="info-header">
+        <div>
+          <h2 id="infoName">삭</h2>
+          <p id="infoDate">음력 1일 무렵</p>
+        </div>
+      </div>
+      <p class="info-row"><b>모양:</b><span id="infoShape">보이지 않음</span></p>
+      <p class="info-row"><b>관찰 시간:</b><span id="infoWhen">관찰 불가</span></p>
+      <p class="info-row"><b>관찰 방향:</b><span id="infoDir">—</span></p>
+      <p class="info-desc" id="infoDesc"></p>
+    </div>
+
+    <!-- 도전 모드 -->
+    <div class="challenge-card" id="challengeCard" hidden>
+      <div id="challengeBody"></div>
+    </div>
+  </section>
+
+  <section class="diary-section">
+    <button class="diary-toggle" id="diaryToggle">
+      <span>📅 한 달 관찰일지 보기 <span class="hint-text">(음력 1~30일 모든 달 모양을 한눈에)</span></span>
+      <span class="arrow">▼ 펼치기</span>
+    </button>
+    <div class="diary-content" id="diaryContent" hidden>
+      <div class="day-grid" id="dayGrid"></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="control-row">
+    <button class="btn" id="playBtn">▶ 재생</button>
+    <button class="btn sm" id="prevBtn">◀ 하루 전</button>
+    <button class="btn sm" id="nextBtn">하루 후 ▶</button>
+    <input type="range" id="slider" min="1" max="30" value="1" step="1">
+    <span class="slider-day-label">음력 <b id="sliderDay">1</b>일</span>
+    <select id="speedSel">
+      <option value="0.5">속도: 느림</option>
+      <option value="1" selected>속도: 보통</option>
+      <option value="2">속도: 빠름</option>
+    </select>
+  </div>
+  <div class="phase-shortcuts">
+    <button data-day="1">삭 (1일)</button>
+    <button data-day="3">초승달 (3일)</button>
+    <button data-day="8">상현달 (8일)</button>
+    <button data-day="12">차오르는 달 (12일)</button>
+    <button data-day="15">보름달 (15일)</button>
+    <button data-day="19">기우는 달 (19일)</button>
+    <button data-day="22">하현달 (22일)</button>
+    <button data-day="27">그믐달 (27일)</button>
+  </div>
+</footer>
+
+</div><!-- /#appPage -->
+
+<script>
+'use strict';
+
+// ─────────────── 학생 / 스프레드시트 연동 ───────────────
+let currentStudent = null;
+let studentsCache = [];
+const IS_APPS_SCRIPT = typeof google !== 'undefined' && google.script && google.script.run;
+
+const API_STORAGE_KEY = 'moonAppApiUrl';
+
+// 연결할 "내 시트(웹앱 API)" 주소.
+//   선생님이 [⚙️ 시트 연결 설정]에서 자기 시트 주소(.../exec)를 저장하면
+//   이 기기(브라우저)에 기억되고, 그 다음부터 학생은 그냥 들어와 사용합니다.
+function getApiUrl() {
+  try {
+    return localStorage.getItem(API_STORAGE_KEY) || '';
+  } catch (_) {
+    return '';
+  }
+}
+let API_URL = getApiUrl();
+
+// JSONP 호출 — Apps Script 웹앱과 CORS 문제 없이 통신한다.
+// (브라우저에서 외부 도메인의 시트로 데이터를 주고받기 위한 방식)
+function jsonpCall(params, onSuccess, onError) {
+  if (!API_URL) {
+    if (onError) onError(new Error('연결된 시트 주소가 없습니다.'));
+    return;
+  }
+  const cbName = 'moonCb_' + Date.now() + '_' + Math.floor(Math.random() * 1e6);
+  const script = document.createElement('script');
+  const timer = setTimeout(function () {
+    cleanup();
+    if (onError) onError(new Error('응답 시간 초과'));
+  }, 15000);
+  function cleanup() {
+    clearTimeout(timer);
+    try { delete window[cbName]; } catch (_) { window[cbName] = undefined; }
+    if (script.parentNode) script.parentNode.removeChild(script);
+  }
+  window[cbName] = function (data) {
+    cleanup();
+    if (onSuccess) onSuccess(data);
+  };
+  const query = Object.keys(params).map(function (k) {
+    return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
+  }).join('&');
+  const sep = API_URL.indexOf('?') === -1 ? '?' : '&';
+  script.src = API_URL + sep + query + '&callback=' + cbName;
+  script.onerror = function () { cleanup(); if (onError) onError(new Error('연결 실패')); };
+  document.head.appendChild(script);
+}
+
+function getMockStudents() {
+  // 로컬 미리보기 전용 — Apps Script 웹앱으로 배포되면 사용되지 않습니다.
+  return [
+    { name: '(로컬 미리보기) 김민준', lastDate: '2026-05-15', lastScore: 8, lastTotal: 10 },
+    { name: '(로컬 미리보기) 이서연', lastDate: '2026-05-16', lastScore: 7, lastTotal: 10 },
+    { name: '(로컬 미리보기) 박지호', lastDate: null, lastScore: null, lastTotal: null },
+  ];
+}
+
+function loadStudents() {
+  const statusEl = document.getElementById('loginStatus');
+  if (IS_APPS_SCRIPT) {
+    // ① Apps Script 웹앱 안에서 직접 실행되는 경우
+    statusEl.textContent = '📊 스프레드시트에서 학생 명단 불러오는 중...';
+    google.script.run
+      .withSuccessHandler(function (data) {
+        onStudentsLoaded(data || []);
+        statusEl.textContent = '✓ 스프레드시트에 연결되었습니다.';
+      })
+      .withFailureHandler(function (err) {
+        console.error(err);
+        onStudentsLoaded(getMockStudents());
+        statusEl.textContent = '⚠ 스프레드시트 연결 실패 — 예시 데이터 사용';
+      })
+      .getStudents();
+  } else if (API_URL) {
+    // ② GitHub 앱 — 코드에 박아둔 스프레드시트(DEFAULT_API_URL)에 자동 연결
+    statusEl.textContent = '📊 학생 명단 불러오는 중...';
+    jsonpCall({ action: 'getStudents' }, function (data) {
+      onStudentsLoaded((data && data.students) || []);
+      statusEl.textContent = '✓ 준비 완료! 이름을 선택하세요.';
+    }, function (err) {
+      console.error(err);
+      onStudentsLoaded(getMockStudents());
+      statusEl.textContent = '⚠ 스프레드시트 연결 실패 — 잠시 후 다시 시도해 주세요 (지금은 예시 데이터)';
+    });
+  } else {
+    // ③ DEFAULT_API_URL 미설정 — 예시 데이터 (개발자가 코드에 주소를 넣어야 함)
+    onStudentsLoaded(getMockStudents());
+    statusEl.textContent = '예시 데이터 (스프레드시트 미연결)';
+  }
+}
+
+function onStudentsLoaded(students) {
+  studentsCache = students;
+  const select = document.getElementById('studentSelect');
+  if (!students || students.length === 0) {
+    select.innerHTML = '<option value="">— 학생명단 시트에 이름을 먼저 입력해 주세요 —</option>';
+    return;
+  }
+  select.innerHTML = '<option value="">— 학생을 선택하세요 —</option>';
+  students.forEach(function (s) {
+    const opt = document.createElement('option');
+    opt.value = s.name;
+    opt.textContent = s.name;
+    select.appendChild(opt);
+  });
+}
+
+function showStudentInfo(studentName) {
+  const student = studentsCache.find(function (s) { return s.name === studentName; });
+  const infoBox = document.getElementById('studentInfo');
+  if (!student) {
+    infoBox.hidden = true;
+    return;
+  }
+  if (student.lastDate) {
+    const pct = Math.round((student.lastScore / student.lastTotal) * 100);
+    infoBox.innerHTML =
+      '<h3>📖 ' + student.name + '의 학습 기록</h3>' +
+      '<p><b>최근 학습일:</b> ' + student.lastDate + '</p>' +
+      '<p><b>최근 점수:</b> ' + student.lastScore + ' / ' + student.lastTotal +
+      '<span class="last-score">' + pct + '%</span></p>' +
+      '<p style="color:#a0d8ff; margin-top:6px;">오늘 다시 도전해 점수를 올려 보세요! 💪</p>';
+  } else {
+    infoBox.innerHTML =
+      '<h3>🌟 ' + student.name + '님 환영합니다!</h3>' +
+      '<p class="empty">아직 학습 기록이 없어요. 오늘 첫 번째 도전을 시작해 보세요!</p>';
+  }
+  infoBox.hidden = false;
+}
+
+function saveResult(score, total, details) {
+  if (!currentStudent) return;
+  const result = {
+    student: currentStudent,
+    score: score,
+    total: total,
+    details: details || '',
+  };
+  if (IS_APPS_SCRIPT) {
+    google.script.run
+      .withSuccessHandler(function () { console.log('✓ 결과 저장 완료'); })
+      .withFailureHandler(function (err) { console.error('저장 실패', err); })
+      .saveResult(result);
+  } else if (API_URL) {
+    jsonpCall({
+      action: 'save',
+      student: result.student,
+      score: result.score,
+      total: result.total,
+      details: result.details,
+    }, function () { console.log('✓ 결과 저장 완료'); },
+       function (err) { console.error('저장 실패', err); });
+  } else {
+    console.log('[로컬 모드 - 저장 시뮬레이션]', result);
+  }
+}
+
+// 로그인 페이지 초기화
+(function initLogin() {
+  const select = document.getElementById('studentSelect');
+  const startBtn = document.getElementById('loginStartBtn');
+  const historyBtn = document.getElementById('historyBtn');
+  const infoBox = document.getElementById('studentInfo');
+
+  select.addEventListener('change', function () {
+    const name = select.value;
+    startBtn.disabled = !name;
+    historyBtn.disabled = !name;
+    // 학생 변경 시 기록 자동 숨기기
+    infoBox.hidden = true;
+  });
+
+  historyBtn.addEventListener('click', function () {
+    const name = select.value;
+    if (!name) return;
+    if (!infoBox.hidden) {
+      // 이미 보이고 있으면 다시 누르면 닫기
+      infoBox.hidden = true;
+    } else {
+      showStudentInfo(name);
+    }
+  });
+
+  startBtn.addEventListener('click', function () {
+    currentStudent = select.value;
+    if (!currentStudent) return;
+    document.getElementById('loginPage').hidden = true;
+    document.getElementById('appPage').hidden = false;
+    const nameEl = document.getElementById('headerStudentName');
+    if (nameEl) nameEl.textContent = '👤 ' + currentStudent;
+    setTimeout(function () {
+      starsCache = null;
+      buildDayGrid();
+      render();
+    }, 50);
+  });
+
+  loadStudents();
+})();
+
+// ─────────────── 상태 ───────────────
+let currentDay = 1;
+let isPlaying = false;
+let speed = 1;
+let animFrame = null;
+let lastTimestamp = 0;
+let mode = 'explore'; // 'explore' or 'challenge'
+
+// 슬라이더는 음력 1~30일(한 달)을 나타낸다. 양 끝(1일·30일)이 모두 '삭'이 되도록
+// 29일 주기로 매핑한다: 1일→위상 0(삭), 15.5일→0.5(보름), 30일→위상 1.0(=0, 삭).
+// (애니메이션도 currentDay -= 29 로 29일마다 순환하므로 일치한다)
+const LUNAR_CYCLE = 29;
+
+// ─────────────── DOM 참조 ───────────────
+const bigMoonCanvas = document.getElementById('bigMoon');
+const slider = document.getElementById('slider');
+const playBtn = document.getElementById('playBtn');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const speedSel = document.getElementById('speedSel');
+const infoCard = document.getElementById('infoCard');
+const challengeCard = document.getElementById('challengeCard');
+const challengeBody = document.getElementById('challengeBody');
+const diaryToggle = document.getElementById('diaryToggle');
+const diaryContent = document.getElementById('diaryContent');
+
+// ─────────────── 위상 계산 ───────────────
+function getPhase(day) {
+  return ((day - 1) / LUNAR_CYCLE) % 1;
+}
+
+function getInfo(day) {
+  const d = Math.floor(day);
+  if (d <= 1 || d >= 30) return {
+    name: '삭', emoji: '🌑',
+    date: '음력 1일 무렵',
+    shape: '보이지 않음',
+    when: '관찰 불가 — 낮 하늘에 태양과 함께 있음',
+    dir: '관찰할 수 없음',
+    desc: '달의 어두운 면이 지구를 향하고 있어 밤하늘에서 달을 볼 수 없습니다. 이때를 기준으로 새로운 음력 한 달이 시작됩니다.'
+  };
+  if (d <= 4) return {
+    name: '초승달', emoji: '🌒',
+    date: '음력 2일 ~ 4일 무렵',
+    shape: '오른쪽이 가느다란 눈썹 모양',
+    when: '해가 진 직후 (저녁 무렵)',
+    dir: '서쪽 하늘 낮은 곳',
+    desc: '점점 굵어지면서 차오르는 모습입니다. 저녁에 잠깐 보이고 곧 서쪽으로 집니다.'
+  };
+  if (d <= 6) return {
+    name: '초승달 → 상현달', emoji: '🌒',
+    date: '음력 5일 ~ 6일 무렵',
+    shape: '오른쪽 부분이 점점 더 굵어지는 달',
+    when: '저녁 ~ 초저녁',
+    dir: '남서쪽 하늘',
+    desc: '초승달이 점점 두꺼워져 반달로 변해가는 시기입니다.'
+  };
+  if (d <= 9) return {
+    name: '상현달', emoji: '🌓',
+    date: '음력 7일 ~ 8일 무렵',
+    shape: '오른쪽 반달 모양',
+    when: '초저녁 ~ 자정',
+    dir: '남쪽 하늘',
+    desc: '달의 오른쪽 절반이 빛납니다. 초저녁에 남쪽 하늘에서 가장 잘 보이고, 자정 무렵에 서쪽으로 집니다.'
+  };
+  if (d <= 13) return {
+    name: '차오르는 달', emoji: '🌔',
+    date: '음력 10일 ~ 13일 무렵',
+    shape: '반달과 보름달 사이 — 점점 둥글어짐',
+    when: '저녁 ~ 새벽',
+    dir: '동쪽에서 떠 남쪽 → 서쪽으로',
+    desc: '상현달이 보름달로 변해가는 시기입니다. 매일 조금씩 더 둥글어지며 환해집니다.'
+  };
+  if (d <= 16) return {
+    name: '보름달(망)', emoji: '🌕',
+    date: '음력 15일 무렵',
+    shape: '둥근 원 모양',
+    when: '해가 지면 떠올라 다음 날 새벽까지 (밤새도록)',
+    dir: '저녁엔 동쪽 · 자정엔 남쪽 · 새벽엔 서쪽',
+    desc: '달의 한 면 전체가 태양 빛을 받아 가장 환하게 보이는 날입니다. 밤새도록 관찰할 수 있습니다.'
+  };
+  if (d <= 20) return {
+    name: '기우는 달', emoji: '🌖',
+    date: '음력 17일 ~ 20일 무렵',
+    shape: '오른쪽부터 점점 작아지는 달',
+    when: '늦은 밤 ~ 새벽',
+    dir: '동쪽에서 떠올라 남쪽 ~ 서쪽 하늘',
+    desc: '보름달이 지나며 오른쪽 부분부터 어두워지면서 작아집니다.'
+  };
+  if (d <= 24) return {
+    name: '하현달', emoji: '🌗',
+    date: '음력 22일 ~ 23일 무렵',
+    shape: '왼쪽 반달 모양',
+    when: '자정 ~ 해 뜰 무렵 (새벽)',
+    dir: '새벽 남쪽 하늘',
+    desc: '달의 왼쪽 절반이 빛납니다. 밤늦게 동쪽에서 떠올라 새벽에 남쪽 하늘에서 가장 잘 보입니다.'
+  };
+  return {
+    name: '그믐달', emoji: '🌘',
+    date: '음력 27일 ~ 28일 무렵',
+    shape: '왼쪽이 가느다란 눈썹 모양',
+    when: '해 뜨기 전 새벽',
+    dir: '동쪽 하늘 낮은 곳',
+    desc: '하현달이 점점 가늘어져 사라지기 직전의 모습입니다. 곧 다시 삭이 됩니다.'
+  };
+}
+
+function getMiniLabel(d) {
+  if (d === 1) return '삭';
+  if (d === 3 || d === 4) return '초승';
+  if (d === 8) return '상현';
+  if (d === 15) return '보름';
+  if (d === 22) return '하현';
+  if (d === 27 || d === 28) return '그믐';
+  return '';
+}
+
+// ─────────────── 달 이미지 로드 ───────────────
+const moonImg = new Image();
+let moonImgReady = false;
+moonImg.onload = function () {
+  moonImgReady = true;
+  buildDayGrid();
+  render();
+};
+moonImg.onerror = function () { moonImgReady = false; };
+
+// 우선순위: Apps Script가 주입한 base64 → 로컬/배포 파일(moon.jpg)
+if (window.__MOON_IMAGE_BASE64__) moonImg.src = window.__MOON_IMAGE_BASE64__;
+else moonImg.src = 'moon.jpg';
+
+// ─────────────── 위상 그림자 마스크 ───────────────
+const shadowCanvas = document.createElement('canvas');
+
+function buildShadowMask(size, r, phase) {
+  shadowCanvas.width = size;
+  shadowCanvas.height = size;
+  const ctx = shadowCanvas.getContext('2d');
+  ctx.clearRect(0, 0, size, size);
+  // 보름(위상 0.5): 그림자 없음 → 전체가 밝은 달
+  if (Math.abs(phase - 0.5) < 0.003) return shadowCanvas;
+  // 삭(신월, 위상 0 또는 1 부근): 전체를 완전히 어둡게.
+  //  → 가장자리 흐림 때문에 양 끝에서 생기던 얇은 실선까지 제거하여
+  //    1일과 30일이 똑같이 캄캄한 삭으로 보이게 한다.
+  if (phase < 0.01 || phase > 0.99) {
+    ctx.fillStyle = 'rgba(0, 0, 0, 1)';
+    ctx.fillRect(0, 0, size, size);
+    return shadowCanvas;
+  }
+
+  const cx = size / 2, cy = size / 2;
+  const waxing = phase < 0.5;
+  const isCrescent = phase < 0.25 || phase > 0.75;
+  const ellipseRx = Math.abs(Math.cos(2 * Math.PI * phase)) * r;
+  // 이 마스크는 '어두운(빛이 안 닿는) 영역'을 나타내며, 달 사진을 지우는 데 쓰인다.
+  // (알파 1 = 완전히 지움 → 그 자리에 밤하늘 배경이 비친다)
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.clip();
+
+  ctx.fillStyle = 'rgba(0, 0, 0, 1)';
+  // 어두운 절반 (왼쪽/오른쪽)
+  ctx.beginPath();
+  if (waxing) ctx.arc(cx, cy, r, Math.PI / 2, -Math.PI / 2, false);
+  else ctx.arc(cx, cy, r, -Math.PI / 2, Math.PI / 2, false);
+  ctx.fill();
+
+  // 명암 경계(터미네이터) — 타원으로 표현
+  if (ellipseRx > 0.4) {
+    if (isCrescent) {
+      // 초승달/그믐달: 어두운 영역을 타원만큼 더 넓힘
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, ellipseRx, r, 0, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      // 상현~보름~하현(볼록한 달): 어두운 절반에서 타원만큼 도로 밝힘
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, ellipseRx, r, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalCompositeOperation = 'source-over';
+    }
+  }
+  ctx.restore();
+  return shadowCanvas;
+}
+
+// ─────────────── 절차적 폴백 ───────────────
+function drawMoonProcedural(ctx, cx, cy, r, phase, opts) {
+  opts = opts || {};
+  const dark = '#252540';
+  const light = '#fff8d6';
+  ctx.fillStyle = dark;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+
+  const waxing = phase < 0.5;
+  ctx.fillStyle = light;
+  ctx.beginPath();
+  if (waxing) ctx.arc(cx, cy, r, -Math.PI / 2, Math.PI / 2, false);
+  else ctx.arc(cx, cy, r, Math.PI / 2, -Math.PI / 2, false);
+  ctx.fill();
+
+  const ellipseRx = Math.abs(Math.cos(2 * Math.PI * phase)) * r;
+  const isCrescent = phase < 0.25 || phase > 0.75;
+  if (ellipseRx > 0.4) {
+    ctx.fillStyle = isCrescent ? dark : light;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, ellipseRx, r, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  if (opts.craters !== false && r > 22) {
+    const craters = [
+      [0.15, -0.32, 0.09], [-0.25, 0.12, 0.13], [0.36, 0.25, 0.07],
+      [-0.10, -0.52, 0.06], [0.45, -0.10, 0.08], [-0.42, -0.20, 0.10],
+      [0.05, 0.46, 0.07], [-0.52, 0.32, 0.05], [0.22, 0.58, 0.06],
+    ];
+    craters.forEach(function (c) {
+      const lit = isPointLit(c[0], c[1], phase);
+      ctx.fillStyle = lit ? 'rgba(0,0,0,0.22)' : 'rgba(255,255,255,0.04)';
+      ctx.beginPath();
+      ctx.arc(cx + c[0] * r, cy + c[1] * r, c[2] * r, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }
+}
+
+function isPointLit(nx, ny, phase) {
+  if (nx * nx + ny * ny > 1) return false;
+  const waxing = phase < 0.5;
+  const inLightHalf = waxing ? nx > 0 : nx < 0;
+  const ellipseRx = Math.abs(Math.cos(2 * Math.PI * phase));
+  const inEllipse = ellipseRx > 0 ? (nx * nx) / (ellipseRx * ellipseRx) + ny * ny <= 1 : false;
+  const isCrescent = phase < 0.25 || phase > 0.75;
+  if (isCrescent) return inLightHalf && !inEllipse;
+  return inLightHalf || inEllipse;
+}
+
+// ─────────────── 통합 달 그리기 ───────────────
+function drawMoon(ctx, cx, cy, r, phase, opts) {
+  opts = opts || {};
+  // 빛무리(glow): 보름달에 가까울 때만 은은하게.
+  // (초승달·반달일 때 전체 원을 둥글게 비추면 '검은 원판'처럼 보이므로 생략)
+  if (opts.glow !== false) {
+    const brightness = Math.sin(phase * Math.PI); // 0(삭) ~ 1(보름)
+    if (brightness > 0.5) {
+      const g = (brightness - 0.5) / 0.5; // 0~1
+      const grad = ctx.createRadialGradient(cx, cy, r, cx, cy, r * 1.7);
+      grad.addColorStop(0, 'rgba(255,248,214,' + (0.3 * g).toFixed(2) + ')');
+      grad.addColorStop(1, 'rgba(255,248,214,0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r * 1.7, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  if (moonImgReady) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.clip();
+    // 사진 자체의 검은 테두리를 없애기 위해 1.08배 미세하게 확대하여 그림
+    const zoom = 1.08;
+    const drawSize = 2 * r * zoom;
+    ctx.drawImage(moonImg, cx - drawSize / 2, cy - drawSize / 2, drawSize, drawSize);
+    // 빛이 닿지 않는 어두운 부분을 '지운다'(destination-out)
+    //  → 그 자리에 밤하늘 배경이 비쳐서, 검은 원판이 아니라 초승달/반달 모양만 남는다.
+    const maskSize = Math.ceil(2 * r) + 4;
+    const mask = buildShadowMask(maskSize, r, phase);
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.drawImage(mask, cx - maskSize / 2, cy - maskSize / 2);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.restore();
+  } else {
+    drawMoonProcedural(ctx, cx, cy, r, phase, opts);
+  }
+}
+
+// ─────────────── 별 ───────────────
+let starsCache = null;
+function drawStars(ctx, w, h) {
+  if (!starsCache || starsCache.w !== w || starsCache.h !== h) {
+    const stars = [];
+    for (let i = 0; i < 60; i++) {
+      stars.push({
+        x: Math.random() * w, y: Math.random() * h,
+        r: Math.random() * 1.1 + 0.3, a: Math.random() * 0.55 + 0.2,
+      });
+    }
+    starsCache = { w: w, h: h, stars: stars };
+  }
+  starsCache.stars.forEach(function (s) {
+    ctx.fillStyle = 'rgba(255,255,255,' + s.a + ')';
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
+// ─────────────── 큰 달 ───────────────
+function renderBigMoon() {
+  const canvas = bigMoonCanvas;
+  const rect = canvas.getBoundingClientRect();
+  if (rect.width === 0 || rect.height === 0) return;
+  canvas.width = Math.floor(rect.width);
+  canvas.height = Math.floor(rect.height);
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawStars(ctx, canvas.width, canvas.height);
+  const r = Math.min(canvas.width, canvas.height) * 0.42;
+  drawMoon(ctx, canvas.width / 2, canvas.height / 2, r, getPhase(currentDay));
+}
+
+// ─────────────── 30일 그리드 ───────────────
+// 미니 달 하나를 '실제 표시 크기 × 화면 배율(devicePixelRatio)'로 그려 선명하게 한다.
+function drawMiniMoon(canvas, day) {
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  // 펼치기 전(숨김 상태)에는 크기를 못 재므로 넉넉한 기본값으로 그린다.
+  const cw = rect.width > 0 ? rect.width : 90;
+  const ch = rect.height > 0 ? rect.height : 90;
+  const pw = Math.max(1, Math.round(cw * dpr));
+  const ph = Math.max(1, Math.round(ch * dpr));
+  if (canvas.width !== pw || canvas.height !== ph) { canvas.width = pw; canvas.height = ph; }
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, pw, ph);
+  const r = Math.min(pw, ph) * 0.42;
+  // 미니 달에는 빛무리(glow)를 끈다 — 격자에서 크림색 빛무리들이 겹쳐
+  // 페이지에 흰 막이 낀 것처럼 뿌옇게 보이는 것을 방지.
+  drawMoon(ctx, pw / 2, ph / 2, r, getPhase(day), { craters: false, glow: false });
+}
+
+// 펼쳐진 일지의 모든 미니 달을 현재 표시 크기에 맞춰 다시 선명하게 그린다.
+function renderMiniMoons() {
+  document.querySelectorAll('#dayGrid .day-cell').forEach(function (cell) {
+    const canvas = cell.querySelector('canvas');
+    if (canvas) drawMiniMoon(canvas, parseInt(cell.dataset.day, 10));
+  });
+}
+
+function buildDayGrid() {
+  const grid = document.getElementById('dayGrid');
+  grid.innerHTML = '';
+  for (let d = 1; d <= 30; d++) {
+    const cell = document.createElement('div');
+    cell.className = 'day-cell';
+    cell.dataset.day = d;
+
+    const canvas = document.createElement('canvas');
+    cell.appendChild(canvas);
+
+    const mini = document.createElement('div');
+    mini.className = 'mini-label';
+    mini.textContent = getMiniLabel(d);
+    cell.appendChild(mini);
+
+    const num = document.createElement('div');
+    num.className = 'num';
+    num.textContent = '음력 ' + d + '일';
+    cell.appendChild(num);
+
+    drawMiniMoon(canvas, d);
+
+    cell.addEventListener('click', function () {
+      stopAnimation();
+      setDay(d);
+    });
+    grid.appendChild(cell);
+  }
+}
+
+function highlightActiveDay() {
+  const d = Math.floor(currentDay);
+  document.querySelectorAll('.day-cell').forEach(function (cell) {
+    cell.classList.toggle('active', parseInt(cell.dataset.day) === d);
+  });
+  document.querySelectorAll('.phase-shortcuts button').forEach(function (btn) {
+    btn.classList.toggle('active', parseInt(btn.dataset.day) === d);
+  });
+}
+
+// ─────────────── 상태 업데이트 ───────────────
+function setDay(day) {
+  let d = day;
+  if (d < 1) d = 1;
+  if (d > 30) d = 30;
+  currentDay = d;
+  render();
+}
+
+function render() {
+  const d = Math.floor(currentDay);
+  document.getElementById('dayNum').textContent = d;
+  document.getElementById('sliderDay').textContent = d;
+  document.getElementById('bigDayLabel').textContent = d;
+  if (parseFloat(slider.value) !== d) slider.value = d;
+
+  const info = getInfo(currentDay);
+  document.getElementById('phaseBadge').textContent = info.name;
+
+  if (mode === 'explore') {
+    document.getElementById('infoName').textContent = info.name;
+    document.getElementById('infoDate').textContent = info.date;
+    document.getElementById('infoShape').textContent = info.shape;
+    document.getElementById('infoWhen').textContent = info.when;
+    document.getElementById('infoDir').textContent = info.dir;
+    document.getElementById('infoDesc').textContent = info.desc;
+  }
+
+  renderBigMoon();
+  highlightActiveDay();
+}
+
+// ─────────────── 애니메이션 ───────────────
+function startAnimation() {
+  if (isPlaying) return;
+  isPlaying = true;
+  playBtn.textContent = '⏸ 정지';
+  lastTimestamp = performance.now();
+  animFrame = requestAnimationFrame(tick);
+}
+function stopAnimation() {
+  if (!isPlaying) return;
+  isPlaying = false;
+  playBtn.textContent = '▶ 재생';
+  if (animFrame) cancelAnimationFrame(animFrame);
+  animFrame = null;
+}
+function tick(t) {
+  if (!isPlaying) return;
+  const dt = (t - lastTimestamp) / 1000;
+  lastTimestamp = t;
+  currentDay += dt * speed * 2;
+  if (currentDay > 30) currentDay -= 29;
+  if (currentDay < 1) currentDay = 1;
+  render();
+  animFrame = requestAnimationFrame(tick);
+}
+
+// ─────────────── 모드 전환 ───────────────
+document.querySelectorAll('.mode-btn').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    const newMode = btn.dataset.mode;
+    if (newMode === mode) return;
+    mode = newMode;
+    document.querySelectorAll('.mode-btn').forEach(function (b) {
+      b.classList.toggle('active', b === btn);
+    });
+    document.body.classList.toggle('mode-challenge', mode === 'challenge');
+    if (mode === 'explore') {
+      infoCard.hidden = false;
+      challengeCard.hidden = true;
+      stopAnimation();
+      render();
+    } else {
+      infoCard.hidden = true;
+      challengeCard.hidden = false;
+      stopAnimation();
+      showChallengeIntro();
+    }
+  });
+});
+
+// ─────────────── 도전 모드 ───────────────
+const QUESTIONS_PER_SESSION = 10;
+
+const CHALLENGE_POOL = [
+  // ─── 슬라이더 문제 (15문제) ───
+  {
+    type: 'slider',
+    question: '음력 <b>15일</b>에 보이는 달의 모양을 슬라이더로 만들어 보세요!',
+    targetDay: 15, tolerance: 1,
+    hint: '한 달 중 가장 둥근 달이 뜨는 날이에요.',
+    success: '맞아요! 음력 15일은 <b>보름달(망)</b>이 뜨는 날이에요. 달의 한쪽 면 전체가 태양빛을 받아 둥근 원 모양으로 보입니다.',
+    fail: '아쉬워요. 정답은 <b>음력 15일</b>이에요. 한 달 중 가장 둥근 달이 뜨는 날이지요.',
+  },
+  {
+    type: 'slider',
+    question: '<b>"상현달"</b>의 모양을 만들어 보세요.',
+    targetDay: 8, tolerance: 1,
+    hint: '오른쪽 반달 모양이에요. 음력 7~8일 무렵 초저녁 남쪽 하늘에서 볼 수 있어요.',
+    success: '맞아요! <b>상현달</b>은 음력 7~8일 무렵, 오른쪽 반쪽이 빛나는 반달이에요. 초저녁 남쪽 하늘에서 가장 잘 보여요.',
+    fail: '아쉬워요. 상현달은 <b>음력 7~8일</b> 무렵이에요. 오른쪽 반달 모양이지요.',
+  },
+  {
+    type: 'slider',
+    question: '"해가 진 직후 서쪽 하늘 낮은 곳에 <b>가느다란 눈썹 모양</b>으로 잠깐 보이는 달". 이 달의 모양을 만들어 보세요!',
+    targetDay: 3, tolerance: 2,
+    hint: '음력 3~4일 무렵에 보이는 달이에요.',
+    success: '맞아요! 이 달은 <b>초승달</b>이에요. 음력 3~4일 무렵 저녁에 서쪽 하늘에서 잠깐 볼 수 있어요.',
+    fail: '아쉬워요. 정답은 <b>음력 3~4일(초승달)</b>이에요.',
+  },
+  {
+    type: 'slider',
+    question: '<b>"하현달"</b>의 모양을 만들어 보세요.',
+    targetDay: 22, tolerance: 1,
+    hint: '왼쪽 반달 모양이에요. 음력 22~23일 무렵 새벽 남쪽 하늘에서 볼 수 있어요.',
+    success: '맞아요! <b>하현달</b>은 음력 22~23일 무렵, 왼쪽 반쪽이 빛나는 반달이에요. 새벽 남쪽 하늘에서 가장 잘 보여요.',
+    fail: '아쉬워요. 하현달은 <b>음력 22~23일</b> 무렵이에요. 왼쪽 반달 모양이지요.',
+  },
+  {
+    type: 'slider',
+    question: '"해 뜨기 전 새벽, 동쪽 하늘 낮은 곳에 <b>왼쪽이 가느다란 눈썹 모양</b>으로 보이는 달". 이 달의 모양을 만들어 보세요!',
+    targetDay: 27, tolerance: 2,
+    hint: '음력 27~28일 무렵에 보이는 달이에요.',
+    success: '맞아요! 이 달은 <b>그믐달</b>이에요. 음력 27~28일 무렵 새벽 동쪽 하늘에서 잠깐 볼 수 있어요.',
+    fail: '아쉬워요. 정답은 <b>음력 27~28일(그믐달)</b>이에요.',
+  },
+  {
+    type: 'slider',
+    question: '<b>"삭"</b>의 모양을 만들어 보세요. 달이 거의 보이지 않는 날이에요.',
+    targetDay: 1, tolerance: 1,
+    hint: '음력 1일 무렵의 달이에요. 달이 거의 보이지 않아요.',
+    success: '맞아요! <b>삭</b>은 음력 1일 무렵이에요. 한 달 중 달이 거의 보이지 않는 날이지요.',
+    fail: '아쉬워요. <b>삭</b>은 음력 1일 무렵이에요. 달이 거의 보이지 않는 날이지요.',
+  },
+  {
+    type: 'slider',
+    question: '상현달과 보름달 사이, 오른쪽이 둥글게 부풀어 있는 <b>"차오르는 달"</b>을 만들어 보세요.',
+    targetDay: 11, tolerance: 1,
+    hint: '음력 11~13일 무렵의 달이에요.',
+    success: '맞아요! 음력 11~13일 무렵은 상현달이 보름달로 차오르는 시기예요. 점점 더 둥글어집니다.',
+    fail: '아쉬워요. 정답은 <b>음력 11~13일</b> 무렵이에요. 보름달을 향해 차오르는 달이지요.',
+  },
+  {
+    type: 'slider',
+    question: '보름달이 막 지나고 오른쪽이 살짝 어두워지기 시작한 <b>"기우는 달"</b>을 만들어 보세요.',
+    targetDay: 18, tolerance: 1,
+    hint: '음력 17~19일 무렵, 보름달과 하현달 사이의 달이에요.',
+    success: '맞아요! 음력 17~19일 무렵은 보름달이 점점 작아져가는 시기예요. 오른쪽부터 어두워집니다.',
+    fail: '아쉬워요. 정답은 <b>음력 17~19일</b> 무렵이에요. 보름달이 작아져가는 달이에요.',
+  },
+  {
+    type: 'slider',
+    question: '하현달과 그믐달 사이, 왼쪽만 가늘게 빛나는 달을 만들어 보세요.',
+    targetDay: 25, tolerance: 1,
+    hint: '음력 25일 무렵의 달이에요. 점점 작아지며 그믐을 향해 가고 있어요.',
+    success: '맞아요! 음력 25일 무렵은 하현달이 그믐달로 작아져가는 시기예요. 왼쪽 일부만 가늘게 빛납니다.',
+    fail: '아쉬워요. 정답은 <b>음력 25일</b> 무렵이에요. 그믐을 향해 가는 달이지요.',
+  },
+  {
+    type: 'slider',
+    question: '초승달과 상현달 사이, 오른쪽이 조금씩 부풀어가는 달을 만들어 보세요. (음력 5일 무렵)',
+    targetDay: 5, tolerance: 1,
+    hint: '초승달보다 조금 더 두꺼워졌지만 아직 반달은 아니에요.',
+    success: '맞아요! 음력 5일 무렵은 초승달이 상현달로 차올라가는 시기예요. 오른쪽이 점점 두꺼워집니다.',
+    fail: '아쉬워요. 정답은 <b>음력 5일</b> 무렵이에요. 초승달과 상현달 사이의 달이지요.',
+  },
+  {
+    type: 'slider',
+    question: '거의 보름달에 가깝지만 아직 완전히 둥글지는 않은 달을 만들어 보세요. (음력 13~14일 무렵)',
+    targetDay: 13, tolerance: 1,
+    hint: '오른쪽이 거의 다 빛나지만 살짝 덜 차오른 상태예요.',
+    success: '맞아요! 음력 13~14일 무렵은 보름달이 되기 직전이에요. 거의 둥글지만 아직 약간 모자란 모양입니다.',
+    fail: '아쉬워요. 정답은 <b>음력 13~14일</b> 무렵이에요. 보름달이 되기 직전의 달이지요.',
+  },
+  {
+    type: 'slider',
+    question: '<b>"초승달"</b>이 막 보이기 시작한 음력 2일 무렵의 달을 만들어 보세요.',
+    targetDay: 2, tolerance: 1,
+    hint: '아주 가느다란 눈썹 모양으로, 초승달 중에서도 가장 얇은 모양이에요.',
+    success: '맞아요! 음력 2일 무렵의 달은 아주 가느다란 초승달이에요. 해진 후 서쪽 하늘에서 아주 짧게만 보입니다.',
+    fail: '아쉬워요. 정답은 <b>음력 2일</b> 무렵이에요. 가장 얇은 초승달이지요.',
+  },
+  {
+    type: 'slider',
+    question: '하현달이 막 지난 음력 23~24일 무렵, 왼쪽이 둥글게 빛나는 달을 만들어 보세요.',
+    targetDay: 24, tolerance: 1,
+    hint: '하현달보다 왼쪽이 살짝 더 줄어든 모양이에요.',
+    success: '맞아요! 음력 23~24일 무렵은 하현달이 그믐달로 작아져가는 시기예요. 왼쪽이 둥글게 빛나지만 점점 가늘어집니다.',
+    fail: '아쉬워요. 정답은 <b>음력 23~24일</b> 무렵이에요. 하현달이 막 지난 달이지요.',
+  },
+  {
+    type: 'slider',
+    question: '음력 20일 무렵, 왼쪽이 둥글게 빛나고 오른쪽이 점점 어두워지는 달을 만들어 보세요.',
+    targetDay: 20, tolerance: 1,
+    hint: '보름달과 하현달 사이의 달로, 오른쪽이 많이 어두워졌어요.',
+    success: '맞아요! 음력 20일 무렵은 보름달이 하현달로 작아져가는 시기예요. 오른쪽이 점점 어두워집니다.',
+    fail: '아쉬워요. 정답은 <b>음력 20일</b> 무렵이에요. 보름달이 작아져가는 달이지요.',
+  },
+  {
+    type: 'slider',
+    question: '음력 7일 무렵, 거의 상현달에 가까운 모양을 만들어 보세요.',
+    targetDay: 7, tolerance: 1,
+    hint: '오른쪽 절반이 거의 다 빛나기 시작한 상태예요. 상현달 직전.',
+    success: '맞아요! 음력 7일 무렵은 상현달이 되기 직전이에요. 오른쪽이 거의 반쯤 차오른 모양입니다.',
+    fail: '아쉬워요. 정답은 <b>음력 7일</b> 무렵이에요. 상현달 직전의 달이지요.',
+  },
+
+  // ─── 4지선다 문제 (15문제) ───
+  {
+    type: 'choices',
+    question: '지금 화면에 보이는 달의 이름은 무엇일까요?',
+    presentDay: 12,
+    choices: ['초승달', '차오르는 달', '하현달', '그믐달'],
+    answer: '차오르는 달',
+    hint: '상현달과 보름달 사이의 달이에요. 점점 둥글어지고 있어요.',
+    success: '맞아요! 상현달이 지나 보름달로 변해가는 달이라서 <b>"차오르는 달"</b>이라고 해요.',
+    fail: '아쉬워요. 정답은 <b>차오르는 달</b>이에요. 상현달이 보름달로 변해가는 시기예요.',
+  },
+  {
+    type: 'choices',
+    question: '음력 15일 보름달은 언제 가장 잘 볼 수 있을까요?',
+    presentDay: 15,
+    choices: ['해 진 직후 (저녁)', '한밤중 (자정)', '새벽 (해 뜨기 전)', '낮 (정오)'],
+    answer: '한밤중 (자정)',
+    hint: '보름달은 해가 지면 동쪽에서 떠올라 자정쯤 가장 높이 올라요.',
+    success: '맞아요! 보름달은 해가 지면 동쪽에서 떠올라 <b>자정쯤 가장 높이(남쪽 하늘)</b> 떠 있어요. 그래서 밤새 볼 수 있지요.',
+    fail: '아쉬워요. 정답은 <b>한밤중(자정)</b>이에요. 보름달은 자정에 가장 높이 떠 있어요.',
+  },
+  {
+    type: 'choices',
+    question: '지금 화면에 보이는 달의 이름은 무엇일까요?',
+    presentDay: 22,
+    choices: ['상현달', '하현달', '보름달', '그믐달'],
+    answer: '하현달',
+    hint: '왼쪽 반쪽이 빛나는 반달이에요. 음력 22~23일 무렵에 보여요.',
+    success: '맞아요! <b>하현달</b>이에요. 왼쪽 반쪽이 빛나는 반달로, 새벽 남쪽 하늘에서 잘 보여요.',
+    fail: '아쉬워요. 정답은 <b>하현달</b>이에요. 왼쪽 반쪽이 빛나는 반달이에요.',
+  },
+  {
+    type: 'choices',
+    question: '지금 화면에 보이는 달의 이름은 무엇일까요?',
+    presentDay: 3,
+    choices: ['초승달', '상현달', '그믐달', '보름달'],
+    answer: '초승달',
+    hint: '오른쪽이 가느다란 눈썹 모양으로 빛나는 달이에요.',
+    success: '맞아요! <b>초승달</b>이에요. 음력 3~4일 무렵 저녁 서쪽 하늘에서 잠깐 볼 수 있어요.',
+    fail: '아쉬워요. 정답은 <b>초승달</b>이에요. 오른쪽이 눈썹 모양으로 빛나는 달이지요.',
+  },
+  {
+    type: 'choices',
+    question: '지금 화면에 보이는 달의 이름은 무엇일까요?',
+    presentDay: 8,
+    choices: ['초승달', '상현달', '하현달', '보름달'],
+    answer: '상현달',
+    hint: '오른쪽 절반이 빛나는 반달이에요. 음력 7~8일 무렵에 보여요.',
+    success: '맞아요! <b>상현달</b>이에요. 오른쪽이 빛나는 반달로, 초저녁 남쪽 하늘에서 잘 보여요.',
+    fail: '아쉬워요. 정답은 <b>상현달</b>이에요. 오른쪽 반쪽이 빛나는 반달이지요.',
+  },
+  {
+    type: 'choices',
+    question: '지금 화면에 보이는 달의 이름은 무엇일까요?',
+    presentDay: 27,
+    choices: ['초승달', '상현달', '하현달', '그믐달'],
+    answer: '그믐달',
+    hint: '왼쪽이 가느다란 눈썹 모양으로 빛나는 달이에요.',
+    success: '맞아요! <b>그믐달</b>이에요. 음력 27~28일 무렵 새벽 동쪽 하늘에서 잠깐 볼 수 있어요.',
+    fail: '아쉬워요. 정답은 <b>그믐달</b>이에요. 왼쪽이 눈썹 모양으로 빛나는 달이지요.',
+  },
+  {
+    type: 'choices',
+    question: '<b>상현달</b>은 어느 쪽이 빛나고 있을까요?',
+    presentDay: 8,
+    choices: ['왼쪽 절반', '오른쪽 절반', '위쪽 절반', '아래쪽 절반'],
+    answer: '오른쪽 절반',
+    hint: '"上(상)"은 위/오른쪽을 뜻해요. 상현달은 오른쪽이 빛나요.',
+    success: '맞아요! <b>상현달</b>은 오른쪽 절반이 빛나는 반달이에요.',
+    fail: '아쉬워요. 정답은 <b>오른쪽 절반</b>이에요. 상현달은 오른쪽이 빛나요.',
+  },
+  {
+    type: 'choices',
+    question: '<b>하현달</b>은 어느 쪽이 빛나고 있을까요?',
+    presentDay: 22,
+    choices: ['왼쪽 절반', '오른쪽 절반', '위쪽 절반', '아래쪽 절반'],
+    answer: '왼쪽 절반',
+    hint: '하현달은 상현달과 반대 방향이 빛나요.',
+    success: '맞아요! <b>하현달</b>은 왼쪽 절반이 빛나는 반달이에요.',
+    fail: '아쉬워요. 정답은 <b>왼쪽 절반</b>이에요. 하현달은 왼쪽이 빛나요.',
+  },
+  {
+    type: 'choices',
+    question: '<b>초승달</b>은 언제 가장 잘 볼 수 있을까요?',
+    presentDay: 3,
+    choices: ['해 진 직후 서쪽 하늘', '한밤중 남쪽 하늘', '새벽 동쪽 하늘', '낮 동쪽 하늘'],
+    answer: '해 진 직후 서쪽 하늘',
+    hint: '초승달은 해가 진 직후 잠깐 보였다가 곧 따라 져 버려요.',
+    success: '맞아요! 초승달은 <b>해 진 직후 서쪽 하늘 낮은 곳</b>에서 짧게 보여요. 곧 해를 따라 서쪽 지평선 아래로 져 버립니다.',
+    fail: '아쉬워요. 정답은 <b>해 진 직후 서쪽 하늘</b>이에요.',
+  },
+  {
+    type: 'choices',
+    question: '<b>그믐달</b>은 언제 가장 잘 볼 수 있을까요?',
+    presentDay: 27,
+    choices: ['해 진 직후 서쪽 하늘', '한밤중 남쪽 하늘', '해 뜨기 전 동쪽 하늘', '낮 서쪽 하늘'],
+    answer: '해 뜨기 전 동쪽 하늘',
+    hint: '그믐달은 새벽에 해보다 조금 먼저 동쪽에서 떠올라요.',
+    success: '맞아요! 그믐달은 <b>해 뜨기 전 새벽 동쪽 하늘 낮은 곳</b>에서 잠깐 볼 수 있어요. 곧 해와 함께 떠오르며 사라집니다.',
+    fail: '아쉬워요. 정답은 <b>해 뜨기 전 동쪽 하늘</b>이에요.',
+  },
+  {
+    type: 'choices',
+    question: '한 달 동안 달의 모양은 어떻게 변할까요?',
+    presentDay: 15,
+    choices: [
+      '매일 똑같은 모양으로 보여요',
+      '가느다란 모양 → 둥근 모양 → 다시 가늘어져 사라짐을 반복해요',
+      '매일 조금씩 작아지기만 해요',
+      '매일 무작위로 모양이 바뀌어요'
+    ],
+    answer: '가느다란 모양 → 둥근 모양 → 다시 가늘어져 사라짐을 반복해요',
+    hint: '약 한 달(음력 한 달)을 주기로 달의 모양이 일정하게 변해요.',
+    success: '맞아요! 달은 약 한 달을 주기로 <b>가느다란 모양 → 둥근 보름달 → 다시 가늘어져 사라짐</b>을 반복해요. 그래서 음력 한 달의 기준이 됩니다.',
+    fail: '아쉬워요. 달은 약 한 달을 주기로 <b>가느다란 모양 → 둥글어졌다가 → 다시 작아져 사라짐</b>을 반복해요.',
+  },
+  {
+    type: 'choices',
+    question: '보름달에서 다음 보름달까지 걸리는 시간은 약 며칠일까요?',
+    presentDay: 15,
+    choices: ['약 7일', '약 15일', '약 30일', '약 365일'],
+    answer: '약 30일',
+    hint: '달의 모양 변화 주기예요. 음력 한 달과 거의 같아요.',
+    success: '맞아요! 보름달에서 다음 보름달까지는 <b>약 30일</b>이 걸려요. 이것이 음력 한 달의 기준이 됩니다.',
+    fail: '아쉬워요. 정답은 <b>약 30일</b>이에요. 음력 한 달과 거의 같아요.',
+  },
+  {
+    type: 'choices',
+    question: '초승달이 점점 차오르면 다음으로 어떤 모양이 될까요?',
+    presentDay: 5,
+    choices: ['그믐달', '하현달', '상현달', '보름달'],
+    answer: '상현달',
+    hint: '초승달이 점점 둥글어지면서 오른쪽 절반이 빛나는 반달이 돼요.',
+    success: '맞아요! 초승달은 점점 차올라 <b>상현달</b>이 돼요. 그 후 보름달까지 계속 둥글어집니다.',
+    fail: '아쉬워요. 정답은 <b>상현달</b>이에요. 초승달 → 상현달 → 보름달 순서로 차올라요.',
+  },
+  {
+    type: 'choices',
+    question: '보름달이 지나면 다음으로 어떤 모양의 달이 보일까요?',
+    presentDay: 18,
+    choices: ['초승달', '상현달', '하현달', '삭'],
+    answer: '하현달',
+    hint: '보름달의 오른쪽부터 점점 어두워지면서 왼쪽 반쪽만 남는 반달이 돼요.',
+    success: '맞아요! 보름달 다음에는 <b>하현달</b>이 돼요. 보름달 → 하현달 → 그믐달 순서로 작아져요.',
+    fail: '아쉬워요. 정답은 <b>하현달</b>이에요. 보름달이 작아지면서 왼쪽 반쪽만 남아요.',
+  },
+  {
+    type: 'choices',
+    question: '달의 모양이 점점 둥글어지고 있는 시기는 언제일까요?',
+    presentDay: 11,
+    choices: [
+      '초승달 → 상현달 → 보름달로 가는 시기',
+      '보름달 → 하현달 → 그믐달로 가는 시기',
+      '하현달 → 상현달로 가는 시기',
+      '보름달 → 초승달로 가는 시기'
+    ],
+    answer: '초승달 → 상현달 → 보름달로 가는 시기',
+    hint: '음력 1일부터 15일 사이에는 달이 점점 차올라요.',
+    success: '맞아요! 음력 1일에서 15일 사이에는 달이 점점 둥글어져요. <b>초승달 → 상현달 → 보름달</b> 순서로 차오릅니다.',
+    fail: '아쉬워요. 정답은 <b>초승달 → 상현달 → 보름달로 가는 시기</b>예요. 음력 전반(1~15일)에 달이 차올라요.',
+  },
+];
+
+let currentChallenges = [];
+
+function pickRandomChallenges() {
+  const pool = CHALLENGE_POOL.slice();
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = pool[i]; pool[i] = pool[j]; pool[j] = tmp;
+  }
+  currentChallenges = pool.slice(0, QUESTIONS_PER_SESSION);
+}
+
+let chIndex = 0;
+let chScore = 0;
+let chState = 'intro'; // intro | question | answered | end
+let chSelected = null; // 선택지 챌린지에서 선택된 답
+
+function showChallengeIntro() {
+  chIndex = 0;
+  chScore = 0;
+  chState = 'intro';
+  challengeBody.innerHTML = `
+    <div class="challenge-intro">
+      <h2>🎯 달 모양 맞히기 챌린지</h2>
+      <p>전체 <b>${CHALLENGE_POOL.length}문제</b> 중에서 매번 <b>${QUESTIONS_PER_SESSION}문제</b>를 무작위로 풀어 보세요!<br>
+      문제를 잘 읽고 달의 모양을 만들거나 답을 선택해요.<br>
+      <span style="color:#a0d8ff;">💡 막히면 힌트를 사용할 수 있어요. 다시 풀 때마다 새로운 문제가 나와요!</span></p>
+      <button class="start-btn" id="chStartBtn">시작하기 ▶</button>
+    </div>
+  `;
+  document.getElementById('chStartBtn').addEventListener('click', function () {
+    chIndex = 0;
+    chScore = 0;
+    pickRandomChallenges();
+    setDay(1);
+    showChallenge();
+  });
+}
+
+function showChallenge() {
+  chState = 'question';
+  chSelected = null;
+  const c = currentChallenges[chIndex];
+
+  // 4지선다는 정답 일자로 강제 이동
+  if (c.type === 'choices' && c.presentDay) setDay(c.presentDay);
+
+  let middleHtml = '';
+  let bottomHintHtml = '';
+  if (c.type === 'slider') {
+    bottomHintHtml = `<p class="challenge-hint-line">⬇ 아래의 슬라이더를 움직여 달의 모양을 맞춰보고 "정답 제출"을 눌러요.</p>`;
+  } else if (c.type === 'choices') {
+    middleHtml = `<div class="challenge-choices" id="chChoices">
+      ${c.choices.map(function (ch) { return `<button class="choice-btn" data-choice="${ch}">${ch}</button>`; }).join('')}
+    </div>`;
+  }
+
+  challengeBody.innerHTML = `
+    <div class="challenge-header">
+      <div class="challenge-title">🎯 달 모양 맞히기</div>
+      <div class="challenge-meta">
+        <span>문제 <b>${chIndex + 1}</b> / <b>${currentChallenges.length}</b></span>
+        <span>점수 <b>${chScore}</b></span>
+      </div>
+    </div>
+    <div class="challenge-question">${c.question}</div>
+    ${middleHtml}
+    <div class="challenge-bottom">
+      <div class="challenge-feedback" id="chFeedback"></div>
+      ${bottomHintHtml}
+      <div class="challenge-actions">
+        <button class="btn secondary" id="chHintBtn">💡 힌트</button>
+        <button class="btn" id="chSubmitBtn">정답 제출</button>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('chHintBtn').addEventListener('click', function () {
+    const fb = document.getElementById('chFeedback');
+    fb.className = 'challenge-feedback wrong';
+    fb.style.background = 'rgba(160,216,255,0.15)';
+    fb.style.borderColor = '#a0d8ff';
+    fb.style.color = '#d0e5ff';
+    fb.innerHTML = '💡 <b>힌트:</b> ' + c.hint;
+  });
+
+  document.getElementById('chSubmitBtn').addEventListener('click', submitAnswer);
+
+  if (c.type === 'choices') {
+    document.querySelectorAll('#chChoices .choice-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        document.querySelectorAll('#chChoices .choice-btn').forEach(function (b) { b.classList.remove('selected'); });
+        btn.classList.add('selected');
+        chSelected = btn.dataset.choice;
+      });
+    });
+  }
+}
+
+function submitAnswer() {
+  const c = currentChallenges[chIndex];
+  let isCorrect = false;
+
+  if (c.type === 'slider') {
+    const d = Math.floor(currentDay);
+    isCorrect = Math.abs(d - c.targetDay) <= c.tolerance;
+  } else if (c.type === 'choices') {
+    if (!chSelected) {
+      const fb = document.getElementById('chFeedback');
+      fb.className = 'challenge-feedback wrong';
+      fb.style.borderColor = '#e76f51';
+      fb.style.background = 'rgba(231,111,81,0.2)';
+      fb.style.color = '#ffdcd0';
+      fb.innerHTML = '⚠ 먼저 답을 하나 선택해 주세요.';
+      return;
+    }
+    isCorrect = chSelected === c.answer;
+    document.querySelectorAll('#chChoices .choice-btn').forEach(function (btn) {
+      if (btn.dataset.choice === c.answer) btn.classList.add('correct');
+      else if (btn.dataset.choice === chSelected && !isCorrect) btn.classList.add('wrong');
+      btn.disabled = true;
+    });
+  }
+
+  if (isCorrect) chScore++;
+  if (c.type === 'slider' && isCorrect) setDay(c.targetDay);
+
+  chState = 'answered';
+  const fb = document.getElementById('chFeedback');
+  fb.style.cssText = '';
+  fb.className = 'challenge-feedback ' + (isCorrect ? 'correct' : 'wrong');
+  fb.innerHTML = (isCorrect ? '✅ <b>정답!</b> ' : '❌ <b>오답</b> ') + (isCorrect ? c.success : c.fail);
+
+  document.getElementById('chSubmitBtn').remove();
+  document.getElementById('chHintBtn').remove();
+  const actions = document.querySelector('.challenge-actions');
+  const isLast = chIndex === currentChallenges.length - 1;
+  const nextBtnEl = document.createElement('button');
+  nextBtnEl.className = 'btn';
+  nextBtnEl.textContent = isLast ? '🏁 결과 보기' : '다음 문제 ▶';
+  nextBtnEl.addEventListener('click', function () {
+    if (isLast) showChallengeEnd();
+    else { chIndex++; showChallenge(); }
+  });
+  actions.appendChild(nextBtnEl);
+}
+
+function showChallengeEnd() {
+  chState = 'end';
+  const total = currentChallenges.length;
+  const percent = chScore / total;
+  // 스프레드시트(또는 로컬 콘솔)에 결과 저장
+  saveResult(chScore, total);
+  let grade, emoji;
+  if (percent === 1) { grade = '완벽해요! 달의 위상 박사!'; emoji = '🏆'; }
+  else if (percent >= 0.7) { grade = '잘했어요! 달의 위상을 잘 이해했네요!'; emoji = '🌟'; }
+  else if (percent >= 0.4) { grade = '좋아요! 조금만 더 공부해 봐요.'; emoji = '👍'; }
+  else { grade = '괜찮아요! 다시 한번 도전해 봐요.'; emoji = '💪'; }
+
+  challengeBody.innerHTML = `
+    <div class="challenge-end">
+      <h2>${emoji} 챌린지 완료!</h2>
+      <div class="final-score">${chScore} / ${total} 점</div>
+      <div class="grade">${grade}</div>
+      <p style="font-size:13px; color:#a0d8ff; margin-bottom:14px;">자유 관찰 모드에서 다시 한번 살펴보거나, 챌린지에 재도전해 보세요!</p>
+      <button class="start-btn" id="chRestartBtn"><span class="restart-icon">🔄</span> 다시 도전</button>
+    </div>
+  `;
+  document.getElementById('chRestartBtn').addEventListener('click', showChallengeIntro);
+}
+
+// ─────────────── 일지 펼치기/접기 ───────────────
+diaryToggle.addEventListener('click', function () {
+  const expanded = diaryToggle.classList.toggle('expanded');
+  diaryContent.hidden = !expanded;
+  diaryToggle.querySelector('.arrow').textContent = expanded ? '▲ 접기' : '▼ 펼치기';
+  // 펼친 직후에는 셀 크기가 정해지므로, 그 실제 크기에 맞춰 미니 달을 선명하게 다시 그린다.
+  if (expanded) setTimeout(renderMiniMoons, 20);
+  setTimeout(render, 10);
+});
+
+// 창 크기가 바뀌면(또는 화면 배율 변경) 펼쳐진 일지의 미니 달도 다시 선명하게 그린다.
+let miniResizeTimer = null;
+window.addEventListener('resize', function () {
+  if (diaryContent.hidden) return;
+  clearTimeout(miniResizeTimer);
+  miniResizeTimer = setTimeout(renderMiniMoons, 150);
+});
+
+// ─────────────── 이벤트 ───────────────
+slider.addEventListener('input', function (e) {
+  stopAnimation();
+  setDay(parseFloat(e.target.value));
+});
+
+playBtn.addEventListener('click', function () {
+  if (isPlaying) stopAnimation();
+  else startAnimation();
+});
+
+prevBtn.addEventListener('click', function () {
+  stopAnimation();
+  let d = Math.floor(currentDay) - 1;
+  if (d < 1) d = 30;
+  setDay(d);
+});
+
+nextBtn.addEventListener('click', function () {
+  stopAnimation();
+  let d = Math.floor(currentDay) + 1;
+  if (d > 30) d = 1;
+  setDay(d);
+});
+
+speedSel.addEventListener('change', function (e) { speed = parseFloat(e.target.value); });
+
+document.querySelectorAll('.phase-shortcuts button').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    stopAnimation();
+    setDay(parseInt(btn.dataset.day));
+  });
+});
+
+window.addEventListener('resize', function () {
+  starsCache = null;
+  buildDayGrid();
+  render();
+});
+
+window.addEventListener('keydown', function (e) {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'BUTTON') return;
+  if (e.key === 'ArrowLeft') { e.preventDefault(); prevBtn.click(); }
+  else if (e.key === 'ArrowRight') { e.preventDefault(); nextBtn.click(); }
+  else if (e.key === ' ') { e.preventDefault(); playBtn.click(); }
+});
+
+// ─────────────── 초기화 ───────────────
+buildDayGrid();
+render();
+requestAnimationFrame(function () { render(); });
+</script>
+
+</body>
+</html>

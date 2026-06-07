@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Jua', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+    padding: 12px;
+    margin: 0;
+    background: #fff;
+    color: #222;
+  }
+  button { font-family: 'Jua', 'Malgun Gothic', sans-serif; }
+  h2 {
+    color: #1a73e8;
+    font-size: 17px;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #1a73e8;
+  }
+  .stat-card {
+    background: #f8f9fa;
+    border-left: 4px solid #1a73e8;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    border-radius: 4px;
+  }
+  .stat-card.green { border-left-color: #34a853; }
+  .stat-card.orange { border-left-color: #f9ab00; }
+  .stat-card.purple { border-left-color: #a142f4; }
+  .stat-label { color: #5f6368; font-size: 12px; margin-bottom: 2px; }
+  .stat-value { font-size: 24px; font-weight: bold; color: #1a73e8; }
+  .stat-card.green .stat-value { color: #34a853; }
+  .stat-card.orange .stat-value { color: #f9ab00; }
+  .stat-card.purple .stat-value { color: #a142f4; }
+  .stat-sub { font-size: 11px; color: #5f6368; margin-top: 2px; }
+
+  .recent-section {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid #e0e0e0;
+  }
+  .recent-title { font-size: 13px; color: #5f6368; margin-bottom: 8px; font-weight: bold; }
+  .recent-item {
+    font-size: 12px;
+    padding: 6px 8px;
+    background: #f1f3f4;
+    border-radius: 4px;
+    margin-bottom: 4px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .recent-item .score { color: #1a73e8; font-weight: bold; }
+
+  .btn {
+    background: #1a73e8;
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    width: 100%;
+    margin-top: 12px;
+    font-weight: bold;
+  }
+  .btn:hover { background: #1557b0; }
+  .btn.refresh {
+    background: #f1f3f4;
+    color: #1a73e8;
+    margin-top: 6px;
+  }
+  .loading { color: #5f6368; font-size: 13px; padding: 16px 0; text-align: center; }
+  .empty { color: #5f6368; font-size: 12px; font-style: italic; text-align: center; padding: 8px; }
+</style>
+</head>
+<body>
+
+<h2>📊 학습 통계 요약</h2>
+
+<div id="loading" class="loading">⏳ 데이터 불러오는 중...</div>
+
+<div id="content" style="display:none">
+  <div class="stat-card">
+    <div class="stat-label">참여 학생</div>
+    <div class="stat-value"><span id="participated">0</span> / <span id="totalRoster">0</span> 명</div>
+    <div class="stat-sub">전체 명단 중 도전한 학생 수</div>
+  </div>
+
+  <div class="stat-card green">
+    <div class="stat-label">총 도전 횟수</div>
+    <div class="stat-value" id="attempts">0</div>
+    <div class="stat-sub">누적 도전 모드 완료 횟수</div>
+  </div>
+
+  <div class="stat-card orange">
+    <div class="stat-label">평균 점수</div>
+    <div class="stat-value"><span id="avg">0</span> 점</div>
+    <div class="stat-sub">총 <span id="totalQ">7</span>문제 중</div>
+  </div>
+
+  <div class="stat-card purple">
+    <div class="stat-label">평균 정답률</div>
+    <div class="stat-value"><span id="avgPercent">0</span>%</div>
+  </div>
+
+  <div class="recent-section">
+    <div class="recent-title">🕒 최근 학습 활동</div>
+    <div id="recentList"></div>
+  </div>
+
+  <button class="btn" onclick="openDashboard()">📈 자세한 통계 보기 →</button>
+  <button class="btn refresh" onclick="load()">🔄 새로 고침</button>
+</div>
+
+<script>
+function load() {
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('content').style.display = 'none';
+  google.script.run.withSuccessHandler(populate).withFailureHandler(onError).getStatsData();
+}
+
+function onError(err) {
+  document.getElementById('loading').textContent = '⚠ 데이터 불러오기 실패: ' + err.message;
+}
+
+function populate(data) {
+  document.getElementById('participated').textContent = data.participatedStudents;
+  document.getElementById('totalRoster').textContent = data.totalRoster;
+  document.getElementById('attempts').textContent = data.totalAttempts;
+  document.getElementById('avg').textContent = data.avgScore;
+  document.getElementById('totalQ').textContent = data.maxTotal;
+  document.getElementById('avgPercent').textContent = data.avgPercent;
+
+  const recentEl = document.getElementById('recentList');
+  recentEl.innerHTML = '';
+  if (!data.recentActivity || data.recentActivity.length === 0) {
+    recentEl.innerHTML = '<div class="empty">아직 학습 기록이 없습니다.</div>';
+  } else {
+    data.recentActivity.slice(0, 6).forEach(function (r) {
+      const div = document.createElement('div');
+      div.className = 'recent-item';
+      div.innerHTML =
+        '<span>' + r.date + ' · ' + r.name + '</span>' +
+        '<span class="score">' + r.score + '/' + r.total + '</span>';
+      recentEl.appendChild(div);
+    });
+  }
+
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('content').style.display = 'block';
+}
+
+function openDashboard() {
+  google.script.run.showDashboard();
+}
+
+load();
+</script>
+</body>
+</html>

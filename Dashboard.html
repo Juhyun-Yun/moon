@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<script src="https://www.gstatic.com/charts/loader.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Jua', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+    padding: 20px;
+    margin: 0;
+    background: #f5f6fa;
+    color: #222;
+  }
+  button { font-family: 'Jua', 'Malgun Gothic', sans-serif; }
+  h2 {
+    color: #1a73e8;
+    font-size: 22px;
+    margin-bottom: 18px;
+    padding-bottom: 10px;
+    border-bottom: 3px solid #1a73e8;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  h2 .refresh-btn {
+    background: #1a73e8;
+    color: white;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: normal;
+  }
+
+  .grid-4 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+  .stat-card {
+    background: white;
+    border-radius: 8px;
+    padding: 14px 18px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    border-left: 4px solid #1a73e8;
+  }
+  .stat-card.green { border-left-color: #34a853; }
+  .stat-card.orange { border-left-color: #f9ab00; }
+  .stat-card.purple { border-left-color: #a142f4; }
+  .stat-label { color: #5f6368; font-size: 13px; margin-bottom: 4px; }
+  .stat-value { font-size: 30px; font-weight: bold; color: #1a73e8; }
+  .stat-card.green .stat-value { color: #34a853; }
+  .stat-card.orange .stat-value { color: #f9ab00; }
+  .stat-card.purple .stat-value { color: #a142f4; }
+
+  .row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+  .chart-section {
+    background: white;
+    border-radius: 8px;
+    padding: 14px 18px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  .chart-section h3 {
+    font-size: 15px;
+    color: #333;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  .chart-container { height: 260px; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  th, td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #eee;
+    text-align: left;
+  }
+  th {
+    background: #f1f3f4;
+    color: #333;
+    font-weight: bold;
+    position: sticky;
+    top: 0;
+  }
+  tr:hover td { background: #f8f9fa; }
+  .scroll-table { max-height: 280px; overflow-y: auto; }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: bold;
+    color: white;
+  }
+  .badge.high { background: #34a853; }
+  .badge.mid { background: #f9ab00; }
+  .badge.low { background: #ea4335; }
+
+  .progress-bar {
+    display: inline-block;
+    width: 80px;
+    height: 8px;
+    background: #e8eaed;
+    border-radius: 4px;
+    vertical-align: middle;
+    margin-right: 6px;
+    overflow: hidden;
+  }
+  .progress-fill { height: 100%; background: #1a73e8; }
+
+  .loading {
+    text-align: center;
+    padding: 40px;
+    color: #5f6368;
+    font-size: 15px;
+  }
+  .empty { color: #5f6368; font-style: italic; text-align: center; padding: 20px; }
+</style>
+</head>
+<body>
+
+<h2>
+  📊 달의 위상 여행 — 전체 통계 대시보드
+  <button class="refresh-btn" onclick="load()">🔄 새로 고침</button>
+</h2>
+
+<div id="loading" class="loading">⏳ 데이터 불러오는 중...</div>
+
+<div id="dashboard" style="display:none">
+
+  <div class="grid-4">
+    <div class="stat-card">
+      <div class="stat-label">참여 학생</div>
+      <div class="stat-value"><span id="participated">0</span>/<span id="totalRoster">0</span></div>
+    </div>
+    <div class="stat-card green">
+      <div class="stat-label">총 도전 횟수</div>
+      <div class="stat-value" id="attempts">0</div>
+    </div>
+    <div class="stat-card orange">
+      <div class="stat-label">평균 점수</div>
+      <div class="stat-value"><span id="avg">0</span><span style="font-size:16px;color:#5f6368;"> / <span id="maxTotal">7</span></span></div>
+    </div>
+    <div class="stat-card purple">
+      <div class="stat-label">평균 정답률</div>
+      <div class="stat-value"><span id="avgPercent">0</span>%</div>
+    </div>
+  </div>
+
+  <div class="row-2">
+    <div class="chart-section">
+      <h3>📊 점수 분포 (도전 횟수별)</h3>
+      <div id="distChart" class="chart-container"></div>
+    </div>
+    <div class="chart-section">
+      <h3>📅 일별 학습 활동</h3>
+      <div id="dailyChart" class="chart-container"></div>
+    </div>
+  </div>
+
+  <div class="row-2">
+    <div class="chart-section">
+      <h3>🕒 최근 학습 활동 (최근 12건)</h3>
+      <div class="scroll-table">
+        <table>
+          <thead>
+            <tr><th>일시</th><th>학생</th><th>점수</th><th>정답률</th></tr>
+          </thead>
+          <tbody id="recentTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="chart-section">
+      <h3>👥 학생별 학습 현황 (최신순)</h3>
+      <div class="scroll-table">
+        <table>
+          <thead>
+            <tr><th>학생</th><th>최근 학습일</th><th>최근 점수</th><th>최고 점수</th></tr>
+          </thead>
+          <tbody id="studentTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+google.charts.load('current', { packages: ['corechart'] });
+let pendingData = null;
+
+function load() {
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('dashboard').style.display = 'none';
+  google.script.run.withSuccessHandler(onData).withFailureHandler(onError).getStatsData();
+}
+
+function onError(err) {
+  document.getElementById('loading').textContent = '⚠ 데이터 불러오기 실패: ' + err.message;
+}
+
+function onData(data) {
+  pendingData = data;
+  populate(data);
+  google.charts.setOnLoadCallback(drawCharts);
+}
+
+function populate(d) {
+  document.getElementById('participated').textContent = d.participatedStudents;
+  document.getElementById('totalRoster').textContent = d.totalRoster;
+  document.getElementById('attempts').textContent = d.totalAttempts;
+  document.getElementById('avg').textContent = d.avgScore;
+  document.getElementById('maxTotal').textContent = d.maxTotal;
+  document.getElementById('avgPercent').textContent = d.avgPercent;
+
+  // 최근 활동 테이블
+  const recentBody = document.getElementById('recentTableBody');
+  recentBody.innerHTML = '';
+  if (!d.recentActivity || d.recentActivity.length === 0) {
+    recentBody.innerHTML = '<tr><td colspan="4" class="empty">아직 학습 기록이 없습니다.</td></tr>';
+  } else {
+    d.recentActivity.forEach(function (r) {
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>' + r.date + '</td>' +
+        '<td>' + r.name + '</td>' +
+        '<td>' + r.score + '/' + r.total + '</td>' +
+        '<td>' + badge(r.percent) + '</td>';
+      recentBody.appendChild(tr);
+    });
+  }
+
+  // 학생별 현황 테이블
+  const studentBody = document.getElementById('studentTableBody');
+  studentBody.innerHTML = '';
+  if (!d.studentList || d.studentList.length === 0) {
+    studentBody.innerHTML = '<tr><td colspan="4" class="empty">아직 참여한 학생이 없습니다.</td></tr>';
+  } else {
+    d.studentList.sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
+    d.studentList.forEach(function (s) {
+      const tr = document.createElement('tr');
+      const recentPct = s.total > 0 ? Math.round((s.score / s.total) * 100) : 0;
+      tr.innerHTML =
+        '<td><b>' + s.name + '</b></td>' +
+        '<td>' + s.date + '</td>' +
+        '<td>' + bar(recentPct) + s.score + '/' + s.total + '</td>' +
+        '<td>' + s.bestScore + '/' + s.bestTotal + '</td>';
+      studentBody.appendChild(tr);
+    });
+  }
+
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+}
+
+function badge(p) {
+  let cls = 'low';
+  if (p >= 80) cls = 'high';
+  else if (p >= 50) cls = 'mid';
+  return '<span class="badge ' + cls + '">' + p + '%</span>';
+}
+
+function bar(p) {
+  return '<span class="progress-bar"><span class="progress-fill" style="width:' + p + '%"></span></span>';
+}
+
+function drawCharts() {
+  if (!pendingData) return;
+  const d = pendingData;
+
+  // 점수 분포 막대 차트
+  const distRows = [['점수', '도전 횟수', { role: 'style' }]];
+  const colors = ['#ea4335', '#ea4335', '#f9ab00', '#f9ab00', '#1a73e8', '#1a73e8', '#34a853', '#34a853'];
+  d.scoreDistribution.forEach(function (c, i) {
+    distRows.push([i + '점', c, colors[i] || '#1a73e8']);
+  });
+  const distData = google.visualization.arrayToDataTable(distRows);
+  const distChart = new google.visualization.ColumnChart(document.getElementById('distChart'));
+  distChart.draw(distData, {
+    legend: 'none',
+    chartArea: { left: 50, top: 20, width: '85%', height: '75%' },
+    vAxis: { title: '도전 횟수', minValue: 0 },
+    hAxis: { title: '점수' },
+    bar: { groupWidth: '75%' },
+  });
+
+  // 일별 활동 라인 차트
+  const dailyEl = document.getElementById('dailyChart');
+  if (!d.dailyActivity || d.dailyActivity.length === 0) {
+    dailyEl.innerHTML = '<div class="empty">학습 활동 기록이 없습니다.</div>';
+  } else {
+    const dailyRows = [['날짜', '도전 횟수']];
+    d.dailyActivity.forEach(function (a) {
+      dailyRows.push([a.date, a.count]);
+    });
+    const dailyData = google.visualization.arrayToDataTable(dailyRows);
+    const dailyChart = new google.visualization.AreaChart(dailyEl);
+    dailyChart.draw(dailyData, {
+      legend: 'none',
+      colors: ['#1a73e8'],
+      chartArea: { left: 50, top: 20, width: '85%', height: '70%' },
+      vAxis: { minValue: 0, format: '0' },
+      areaOpacity: 0.3,
+      pointSize: 5,
+    });
+  }
+}
+
+load();
+</script>
+</body>
+</html>
