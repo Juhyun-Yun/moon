@@ -149,8 +149,8 @@ function showWebAppLink() {
     : '';
   const html = HtmlService.createHtmlOutput(
     '<div style="font-family:sans-serif; padding:8px; line-height:1.5;">' +
-    '<p style="font-size:14px;"><b>🔧 (관리자 전용) 웹앱 주소</b><br>' +
-    '<span style="font-size:12px; color:#5f6368;">GitHub의 index.html 맨 위 <b>DEFAULT_API_URL</b> 에 이 주소를 붙여넣고 배포하세요. (최초 1번)</span></p>' +
+    '<p style="font-size:14px;"><b>🔗 내 시트(웹앱) 주소</b><br>' +
+    '<span style="font-size:12px; color:#5f6368;">앱 첫 화면 [⚙️ 시트 연결 설정]에 이 주소를 붙여넣고 저장하세요.</span></p>' +
     '<input type="text" readonly value="' + url + '" ' +
     'style="width:100%; padding:8px; font-size:13px;" onclick="this.select()">' +
     appLine +
@@ -284,40 +284,51 @@ function buildTeacherGuide_(ss) {
   sh.setRowHeight(r, 56); r++;
   sh.getRange(r, 1, 1, 3).merge().setBackground('#2a3270');
   sh.getRange(r, 1)
-    .setValue('이 시트 하나로 우리 반 학생 명단 관리 + 학습 결과 자동 수집이 됩니다. 선생님은 아래 3단계만!')
+    .setValue('이 사본 하나로 우리 반 학생 명단 관리 + 학습 결과 자동 수집이 됩니다. 아래 순서대로 한 번만 설정하세요!')
     .setFontColor('#f4f1de').setFontSize(11).setHorizontalAlignment('center').setVerticalAlignment('middle');
   sh.setRowHeight(r, 30); r++;
   spacer(14);
 
   // ── 무엇인가요 ──
-  row('💡 이 앱은 어떻게 쓰나요?', { bold: true, size: 14, color: BLUE });
-  row('• 선생님은 따로 만들거나 설치할 것이 없습니다. 아래 3가지만 하면 끝!', { bold: true, color: GREEN });
-  row('• 학생은 공유받은 "앱 주소" 하나만 누르면 됩니다. (설정·로그인·링크 만들기 전혀 없음)', {});
-  row('• 학생이 이름을 고르고 도전하면, 결과가 이 스프레드시트 「학습기록」 탭에 자동으로 쌓입니다.', {});
+  row('💡 이건 무엇인가요?', { bold: true, size: 14, color: BLUE });
+  row('• 선생님은 자기 시트(이 사본)를 앱에 한 번만 "연결"합니다.', {});
+  row('• 그 다음부터 학생은 공유받은 "앱 주소"로 들어와 이름만 고르고 학습/도전합니다.', {});
+  row('• 결과(점수·정답률·날짜)는 이 사본의 「학습기록」 탭에만 쌓입니다. (다른 반과 안 섞임)', {});
   spacer(16);
 
-  // ── 선생님 3단계 ──
-  row('🚀 선생님은 이렇게만 하세요 (3단계)', { bold: true, size: 14, color: BLUE });
+  // ── 선생님 단계 ──
+  row('🚀 선생님 설정 (처음 한 번)', { bold: true, size: 14, color: BLUE });
   spacer(6);
 
-  stepHeader('1단계  ·  학생 이름 입력', BLUE);
-  row('아래쪽 「학생명단」 탭을 열고, B열에 우리 반 학생 이름을 한 줄에 한 명씩 입력하세요.', {});
-  row('→ 입력한 이름이 앱의 학생 선택 드롭다운에 자동으로 나타납니다.', { color: '#5f6368', italic: true });
+  stepHeader('1단계  ·  내 사본 만들기', BLUE);
+  row('상단 [파일] → [사본 만들기]. → 이 안내와 자동화 기능이 통째로 내 계정으로 복사됩니다.', {});
   spacer(10);
 
-  stepHeader('2단계  ·  학생에게 "앱 주소" 알려주기', GREEN);
+  stepHeader('2단계  ·  시트 만들기 / 권한 승인', GREEN);
+  row('내 사본 새로고침(F5) → [📊 달의 위상 여행 대시보드] 메뉴 → [🗂 시트 초기화 / 만들기].', {});
+  row('권한 창: [권한 검토] → 내 계정 → "확인되지 않은 앱"에서 [고급] → [(안전하지 않음)으로 이동] → [허용].', {});
+  spacer(10);
+
+  stepHeader('3단계  ·  학생 이름 입력', ORANGE);
+  row('「학생명단」 탭 B열에 우리 반 학생 이름을 한 줄에 한 명씩. → 앱 드롭다운에 자동 표시됩니다.', {});
+  spacer(10);
+
+  stepHeader('4단계  ·  내 시트를 웹앱으로 배포 (주소 받기)', PURPLE);
+  row('[확장 프로그램] → [Apps Script] → 오른쪽 위 [배포] → [새 배포] → ⚙️ → [웹 앱].', {});
+  row('• 실행 계정: 나      • 액세스 권한: 모든 사용자   ← 꼭 "모든 사용자"!', { bold: true, color: RED });
+  row('[배포] → 나오는 URL(.../exec)을 복사. (이게 "내 시트 주소")', {});
+  spacer(10);
+
+  stepHeader('5단계  ·  앱에 내 시트 연결하기', NAVY);
   if (APP_BASE_URL) {
-    row('학생들에게 아래 주소를 알려주세요. (학급 게시판·메신저·QR코드 등)', {});
-    row(APP_BASE_URL, { bg: '#fff8e1', bold: true, color: '#bf6b00', size: 12, height: 28 });
+    row('공유받은 앱 주소(' + APP_BASE_URL + ')를 엽니다.', {});
   } else {
-    row('학생들에게 "앱 주소"를 알려주세요. (관리자에게 주소를 받으세요)', {});
+    row('공유받은 앱 주소(GitHub 주소)를 엽니다.', {});
   }
-  row('★ 학생은 이 주소만 누르면 끝! 이름만 고르고 바로 시작합니다. (초등학생도 쉬워요)', { bold: true, color: RED });
-  spacer(10);
-
-  stepHeader('3단계  ·  학습 결과 확인', ORANGE);
-  row('「학습기록」 탭에 학생들의 도전 결과(점수·정답률·날짜)가 실시간으로 쌓입니다.', {});
-  row('상단 [📊 달의 위상 여행 대시보드] 메뉴 → [📈 전체 통계 보기]로 그래프와 표도 볼 수 있어요.', {});
+  row('첫 화면 [⚙️ 시트 연결 설정] → 4단계 주소(.../exec) 붙여넣기 → [💾 저장하고 연결].', {});
+  row('→ "✓ 준비 완료" + 우리 반 이름이 드롭다운에 나오면 성공! 🎉', { bold: true, color: GREEN });
+  row('★ 한 번 연결하면 그 기기에 기억됩니다. 이후 학생은 같은 주소로 들어와 이름만 고르면 됩니다.', { bold: true, color: RED });
+  row('   (학생이 각자 다른 기기를 쓰면, 그 기기에서도 선생님이 한 번 연결해 주세요. 학생은 설정을 만지지 않습니다.)', { color: '#5f6368', italic: true });
   spacer(16);
 
   // ── FAQ ──
@@ -327,22 +338,14 @@ function buildTeacherGuide_(ss) {
     row('A. ' + a, { height: 36 });
     spacer(4);
   }
-  faq('선생님도 주소(웹앱)를 배포하거나 링크를 만들어야 하나요?',
-      '아니요. 선생님은 아무것도 배포·설치하지 않습니다. ① 학생 이름 넣기 ② 앱 주소 알려주기 ③ 결과 보기, 이게 전부입니다.');
-  faq('학생이 뭔가 설정해야 하나요?',
-      '아니요. 학생은 앱 주소만 누르고 자기 이름만 고르면 됩니다.');
+  faq('학생이 뭔가 설정하거나 주소를 입력해야 하나요?',
+      '아니요. 연결은 선생님이 [⚙️ 설정]에서 한 번만 합니다. 학생은 앱 주소로 들어와 이름만 고릅니다.');
+  faq('학생 결과가 저장이 안 돼요.',
+      'Apps Script [배포] → [배포 관리] → 편집(연필) → 버전 "새 버전" → [배포]을 실행하고, 액세스 권한이 "모든 사용자"인지 확인하세요.');
+  faq('내 데이터가 다른 선생님께 보이나요?',
+      '아니요. 결과는 "내 사본" 시트에만 저장됩니다. 앱 화면만 공유될 뿐 데이터는 분리됩니다.');
   faq('학생이 다시 도전하면 이전 기록이 사라지나요?',
       '사라지지 않습니다. 「학습기록」 탭에 매번 새 줄로 쌓이고, 「학생명단」에는 가장 최근 점수가 표시됩니다.');
-  faq('학생 화면이 "예시 데이터"라고 나와요.',
-      '관리자가 앱에 이 시트를 연결(아래 최초 설정)했는지 확인이 필요합니다.');
-  spacer(14);
-
-  // ── 관리자(개발자) 최초 설정 — 1번만 ──
-  stepHeader('🔧 관리자(개발자) 전용 — 최초 1번만', NAVY);
-  row('① 이 시트에서 [확장 프로그램]→[Apps Script]→[배포]→[새 배포]→[웹 앱] (실행: 나 / 액세스: 모든 사용자) → URL(.../exec) 복사', {});
-  row('② GitHub의 index.html 맨 위 DEFAULT_API_URL 에 그 주소를 붙여넣고 GitHub Pages로 배포', {});
-  row('③ 완성된 GitHub 앱 주소를 선생님들에게 공유 (위 2단계의 "앱 주소"가 바로 이것)', {});
-  row('※ 이 한 번의 설정으로 모든 선생님·학생은 그 주소만 쓰면 됩니다. (이후엔 아무도 배포·링크 안 만듦)', { color: '#5f6368', italic: true });
   spacer(14);
 
   row('🌟 통계 보기: [📊 달의 위상 여행 대시보드] 메뉴에서 사이드바 요약과 전체 통계 대시보드를 볼 수 있어요.',

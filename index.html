@@ -661,6 +661,44 @@
     font-style: italic;
   }
 
+  /* ⚙️ 시트 연결 설정 (선생님용) */
+  .settings-toggle {
+    margin-top: 14px; background: none; border: none;
+    color: #8fa3c8; font-size: 13px; cursor: pointer;
+    text-decoration: underline; opacity: 0.8;
+  }
+  .settings-toggle:hover { color: #ffd166; opacity: 1; }
+  .settings-panel {
+    margin-top: 14px; background: rgba(160,216,255,0.08);
+    border: 1px solid rgba(160,216,255,0.3); border-radius: 10px;
+    padding: 16px 18px; text-align: left;
+  }
+  .settings-panel[hidden] { display: none; }
+  .settings-input {
+    width: 100%; padding: 11px 14px; font-size: 14px;
+    background: #1a1f4e; color: #f4f1de;
+    border: 2px solid #a0d8ff; border-radius: 8px; margin-bottom: 12px;
+  }
+  .settings-input:focus { outline: none; border-color: #ffd166; }
+  .settings-buttons { display: flex; gap: 10px; }
+  .settings-save-btn {
+    flex: 1; background: linear-gradient(135deg, #6cd5b3, #4aa890);
+    color: #0a0e27; border: none; padding: 11px 16px; border-radius: 22px;
+    font-size: 15px; font-weight: bold; cursor: pointer;
+  }
+  .settings-save-btn:hover { filter: brightness(1.08); }
+  .settings-clear-btn {
+    background: rgba(255,255,255,0.08); color: #d88;
+    border: 2px solid #d88; padding: 11px 18px; border-radius: 22px;
+    font-size: 14px; cursor: pointer;
+  }
+  .settings-clear-btn:hover { background: rgba(221,136,136,0.15); }
+  .settings-hint {
+    margin-top: 12px; font-size: 12.5px; color: #a0d8ff;
+    line-height: 1.6; font-style: normal;
+  }
+  .settings-hint b { color: #ffd166; }
+
 </style>
 </head>
 <body>
@@ -860,7 +898,7 @@ function loadStudents() {
       })
       .getStudents();
   } else if (API_URL) {
-    // ② GitHub 앱 — 코드에 박아둔 스프레드시트(DEFAULT_API_URL)에 자동 연결
+    // ② GitHub 앱 — 선생님이 연결해 둔 시트에서 명단을 가져옴
     statusEl.textContent = '📊 학생 명단 불러오는 중...';
     jsonpCall({ action: 'getStudents' }, function (data) {
       onStudentsLoaded((data && data.students) || []);
@@ -868,12 +906,12 @@ function loadStudents() {
     }, function (err) {
       console.error(err);
       onStudentsLoaded(getMockStudents());
-      statusEl.textContent = '⚠ 스프레드시트 연결 실패 — 잠시 후 다시 시도해 주세요 (지금은 예시 데이터)';
+      statusEl.textContent = '⚠ 시트 연결 실패 — 선생님께 문의하세요 (지금은 예시 데이터)';
     });
   } else {
-    // ③ DEFAULT_API_URL 미설정 — 예시 데이터 (개발자가 코드에 주소를 넣어야 함)
+    // ③ 미연결 — 선생님이 ⚙️설정에서 시트를 연결해야 함
     onStudentsLoaded(getMockStudents());
-    statusEl.textContent = '예시 데이터 (스프레드시트 미연결)';
+    statusEl.textContent = '미연결 (예시 데이터) — 선생님: 아래 ⚙️ 설정에서 내 시트를 연결하세요';
   }
 }
 
@@ -982,6 +1020,46 @@ function saveResult(score, total, details) {
       render();
     }, 50);
   });
+
+  // ── ⚙️ 시트 연결 설정 (선생님이 자기 시트를 연결) ──
+  // Apps Script 안에서 직접 실행 중이면 설정이 필요 없으므로 숨긴다.
+  const settingsToggle = document.getElementById('settingsToggle');
+  const settingsPanel = document.getElementById('settingsPanel');
+  const apiUrlInput = document.getElementById('apiUrlInput');
+  const apiSaveBtn = document.getElementById('apiSaveBtn');
+  const apiClearBtn = document.getElementById('apiClearBtn');
+
+  if (IS_APPS_SCRIPT) {
+    settingsToggle.style.display = 'none';
+  } else {
+    apiUrlInput.value = API_URL || '';
+    settingsToggle.addEventListener('click', function () {
+      settingsPanel.hidden = !settingsPanel.hidden;
+    });
+    apiSaveBtn.addEventListener('click', function () {
+      const url = apiUrlInput.value.trim();
+      if (!url) {
+        document.getElementById('loginStatus').textContent = '⚠ 주소를 입력해 주세요.';
+        return;
+      }
+      if (url.indexOf('https://') !== 0 || url.indexOf('/exec') === -1) {
+        document.getElementById('loginStatus').textContent =
+          '⚠ 올바른 웹앱 주소가 아닌 것 같아요 (https://...로 시작하고 .../exec로 끝나야 합니다).';
+        return;
+      }
+      try { localStorage.setItem(API_STORAGE_KEY, url); } catch (_) {}
+      API_URL = url;
+      apiUrlInput.value = url;
+      settingsPanel.hidden = true;
+      loadStudents();
+    });
+    apiClearBtn.addEventListener('click', function () {
+      try { localStorage.removeItem(API_STORAGE_KEY); } catch (_) {}
+      API_URL = '';
+      apiUrlInput.value = '';
+      loadStudents();
+    });
+  }
 
   loadStudents();
 })();
