@@ -1,5 +1,5 @@
 /**
- * 🌙 달의 위상 여행 — Apps Script (통합본)
+ * 🌙 달 모양 탐험대 — Apps Script (통합본)
  *
  * 사이드바/대시보드 HTML이 이 파일 안에 모두 포함되어 있어
  * 따로 .html 파일을 만들 필요가 없습니다.
@@ -53,13 +53,13 @@ function doGet(e) {
   } catch (err) {
     return HtmlService.createHtmlOutput(
       '<div style="font-family:sans-serif;padding:24px;line-height:1.6;color:#222;">' +
-      '<h2 style="color:#1a73e8;">🌙 달의 위상 여행 — 시트 연결 서버</h2>' +
+      '<h2 style="color:#1a73e8;">🌙 달 모양 탐험대 — 시트 연결 서버</h2>' +
       '<p>이 주소는 <b>데이터 연결용 API</b>입니다. 학습 화면은 여기가 아니라 ' +
       '공유받은 <b>앱 주소</b>로 접속하세요.</p>' +
       '<p style="color:#5f6368;font-size:13px;">앱 첫 화면 [⚙️ 시트 연결 설정]에 ' +
       '이 주소(.../exec)를 붙여넣으면 연결됩니다.</p>' +
       '</div>'
-    ).setTitle('🌙 달의 위상 여행 — 연결 서버');
+    ).setTitle('🌙 달 모양 탐험대 — 연결 서버');
   }
 
   // (선택) index 파일을 넣은 경우에만: 달 이미지 base64 주입 후 화면 제공
@@ -76,7 +76,7 @@ function doGet(e) {
     html = html.replace('</head>', inject + '</head>');
   }
   return HtmlService.createHtmlOutput(html)
-    .setTitle('🌙 달의 위상 여행')
+    .setTitle('🌙 달 모양 탐험대')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1.0');
 }
@@ -103,7 +103,7 @@ function jsonpResponse(e, obj) {
 function onOpen() {
   // 메뉴를 먼저 만든다 — 시트 작업에서 문제가 생겨도 메뉴는 항상 나타나도록.
   SpreadsheetApp.getUi()
-    .createMenu('📊 달의 위상 여행 대시보드')
+    .createMenu('📊 달 모양 탐험대 대시보드')
     .addItem('📖 선생님 가이드 보기/만들기', 'createTeacherGuide')
     .addItem('🗂 시트 초기화 / 만들기', 'ensureSheets')
     .addSeparator()
@@ -278,7 +278,7 @@ function buildTeacherGuide_(ss) {
   // ── 제목 배너 ──
   sh.getRange(r, 1, 1, 3).merge().setBackground(NAVY);
   sh.getRange(r, 1)
-    .setValue('🌙  달의 위상 여행  ·  선생님 설정 가이드')
+    .setValue('🌙  달 모양 탐험대  ·  선생님 설정 가이드')
     .setFontColor(GOLD).setFontWeight('bold').setFontSize(20)
     .setHorizontalAlignment('center').setVerticalAlignment('middle');
   sh.setRowHeight(r, 56); r++;
@@ -305,7 +305,7 @@ function buildTeacherGuide_(ss) {
   spacer(10);
 
   stepHeader('2단계  ·  시트 만들기 / 권한 승인', GREEN);
-  row('내 사본 새로고침(F5) → [📊 달의 위상 여행 대시보드] 메뉴 → [🗂 시트 초기화 / 만들기].', {});
+  row('내 사본 새로고침(F5) → [📊 달 모양 탐험대 대시보드] 메뉴 → [🗂 시트 초기화 / 만들기].', {});
   row('권한 창: [권한 검토] → 내 계정 → "확인되지 않은 앱"에서 [고급] → [(안전하지 않음)으로 이동] → [허용].', {});
   spacer(10);
 
@@ -348,7 +348,7 @@ function buildTeacherGuide_(ss) {
       '사라지지 않습니다. 「학습기록」 탭에 매번 새 줄로 쌓이고, 「학생명단」에는 가장 최근 점수가 표시됩니다.');
   spacer(14);
 
-  row('🌟 통계 보기: [📊 달의 위상 여행 대시보드] 메뉴에서 사이드바 요약과 전체 통계 대시보드를 볼 수 있어요.',
+  row('🌟 통계 보기: [📊 달 모양 탐험대 대시보드] 메뉴에서 사이드바 요약과 전체 통계 대시보드를 볼 수 있어요.',
       { bg: '#e8f0fe', color: BLUE, bold: true, height: 30 });
 
   sh.setFrozenRows(2);
@@ -809,7 +809,7 @@ function getDashboardHtml() {
 <body>
 
 <h2>
-  📊 달의 위상 여행 — 전체 통계 대시보드
+  📊 달 모양 탐험대 — 전체 통계 대시보드
   <button class="refresh-btn" onclick="load()">🔄 새로 고침</button>
 </h2>
 
