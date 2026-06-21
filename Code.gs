@@ -1,4 +1,32 @@
 /**
+ * ============================================================
+ * © 2026 GEG 화성(깊이 e끌림). All rights reserved.
+ *
+ * 본 코드는 「저작권법」상 보호받는 저작물입니다.
+ * - 복제권(제16조)·공중송신권(제18조)·배포권(제20조)은
+ *   저작권자에게 있습니다.
+ * - 정식 경로로 받은 이용자라도 코드의 무단 복제·재배포·
+ *   재판매·리브랜딩은 허용되지 않습니다.
+ * - 무단 이용 시 「저작권법」 제136조(5년 이하 징역 또는
+ *   5천만 원 이하 벌금) 및 제125조(손해배상) 적용 대상이
+ *   될 수 있습니다.
+ * - 이용 문의: bacusiki777@gmail.com, for2102@jimj.kr
+ * ============================================================
+ */
+
+// 빌드 서명
+const _BUILD_SIG = 'GEGHS-DEEPE-2026';
+
+// 출처 확인용 함수
+function getBuildInfo() {
+  return {
+    sig: _BUILD_SIG,
+    owner: 'GEG 화성(깊이 e끌림)',
+    year: 2026
+  };
+}
+
+/**
  * 🌙 달 모양 탐험대 — Apps Script (통합본)
  *
  * 사이드바/대시보드 HTML이 이 파일 안에 모두 포함되어 있어
@@ -15,12 +43,12 @@
 
 const SHEET_ROSTER = '학생명단';
 const SHEET_RECORDS = '학습기록';
-const SHEET_GUIDE = '📖 선생님 가이드';
+const SHEET_USAGE = '사용 설명';
 const TZ = 'Asia/Seoul';
 
 // 🌐 GitHub Pages에 올린 학생용 앱 주소 (배포 후 직접 채워 넣으세요)
 //    예: 'https://내아이디.github.io/moon-phase/'
-//    선생님 가이드 시트에 학생 접속 안내로 표시됩니다. (비워 두어도 동작합니다)
+//    「학생 접속 링크 보기」 메뉴에서 표시됩니다. (비워 두어도 동작합니다)
 const APP_BASE_URL = '';
 
 // ────────────────────────────────────────────────
@@ -104,7 +132,7 @@ function onOpen() {
   // 메뉴를 먼저 만든다 — 시트 작업에서 문제가 생겨도 메뉴는 항상 나타나도록.
   SpreadsheetApp.getUi()
     .createMenu('📊 달 모양 탐험대 대시보드')
-    .addItem('📖 선생님 가이드 보기/만들기', 'createTeacherGuide')
+    .addItem('📋 사용 설명 보기/만들기', 'setupGuideSheet')
     .addItem('🗂 시트 초기화 / 만들기', 'ensureSheets')
     .addSeparator()
     .addItem('🔍 간단 통계 (사이드바)', 'showSidebar')
@@ -213,146 +241,161 @@ function ensureSheets() {
     records.getRange('A:A').setNumberFormat('yyyy-MM-dd HH:mm');
   }
 
-  // 선생님 가이드 시트가 없으면 처음 한 번 자동 생성
-  if (!ss.getSheetByName(SHEET_GUIDE)) {
-    buildTeacherGuide_(ss);
+  // 안내 시트들은 Google Sheets UI 컨텍스트(메뉴·사이드바)에서만 자동 생성.
+  // doGet/JSONP 호출 시에는 스킵하여 15초 타임아웃 안에 응답할 수 있게 한다.
+  let isUiContext = false;
+  try { SpreadsheetApp.getUi(); isUiContext = true; } catch (_) {}
+
+  if (isUiContext && !ss.getSheetByName(SHEET_USAGE)) {
+    try { setupGuideSheet(); } catch (_) {}
   }
 }
 
 // ════════════════════════════════════════════════
-// 📖 선생님 가이드 시트 (색깔 입힌 안내) — 사본을 받은 다른 선생님용
+// 📋 사용 설명 시트 (시트 운영 안내) — 메뉴 또는 자동 생성
 // ════════════════════════════════════════════════
-function createTeacherGuide() {
+function setupGuideSheet() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  buildTeacherGuide_(ss);
-  try {
-    SpreadsheetApp.getUi().alert('📖 「선생님 가이드」 탭을 새로 만들었습니다.\n맨 앞 탭에서 안내를 확인하세요.');
-  } catch (_) {}
-}
-
-function buildTeacherGuide_(ss) {
-  // 기존 가이드가 있으면 지우고 새로 만든다
-  let sh = ss.getSheetByName(SHEET_GUIDE);
-  if (sh) ss.deleteSheet(sh);
-  sh = ss.insertSheet(SHEET_GUIDE, 0); // 맨 앞에 배치
-
-  // 색상 팔레트
   const NAVY = '#1a1f4e', GOLD = '#ffd166', BLUE = '#1a73e8';
-  const GREEN = '#34a853', ORANGE = '#f9ab00', PURPLE = '#a142f4', RED = '#ea4335';
-  const LIGHT = '#f1f3f4';
+  const GREEN = '#34a853', LIGHT = '#f1f3f4';
 
-  // 격자/기본 서식 정리
+  // 기존 안내 탭 삭제 (이름이 같거나 구버전 이름이면 제거)
+  ['사용 설명', '📖 사용법'].forEach(function(name) {
+    const old = ss.getSheetByName(name);
+    if (!old) return;
+    if (ss.getSheets().length <= 1) {
+      const tmp = ss.insertSheet('__tmp_' + Date.now());
+      ss.deleteSheet(old);
+      tmp.setName(SHEET_USAGE);
+      ss.setActiveSheet(tmp);
+      ss.moveActiveSheet(1);
+    } else {
+      ss.deleteSheet(old);
+    }
+  });
+
+  let sh = ss.getSheetByName(SHEET_USAGE);
+  if (!sh) sh = ss.insertSheet(SHEET_USAGE, 0);
+
+  sh.clear();
   sh.setHiddenGridlines(true);
-  sh.setColumnWidth(1, 40);
-  sh.setColumnWidth(2, 760);
-  sh.setColumnWidth(3, 40);
-  sh.getRange('A:C').setVerticalAlignment('middle');
+  sh.setColumnWidth(1, 30);
+  sh.setColumnWidth(2, 740);
+  sh.setColumnWidth(3, 30);
+  sh.getRange('A:C').setVerticalAlignment('top');
 
   let r = 1;
-  // 한 줄(제목/본문/단계 등)을 추가하는 헬퍼
-  function row(text, opts) {
+
+  function row123() { return sh.getRange(r, 1, 1, 3); }
+  function cell2() { return sh.getRange(r, 2); }
+
+  function banner(text, opts) {
     opts = opts || {};
-    const cell = sh.getRange(r, 2);
-    cell.setValue(text);
-    cell.setWrap(true);
-    cell.setFontSize(opts.size || 11);
-    cell.setFontColor(opts.color || '#202124');
-    if (opts.bg) sh.getRange(r, 1, 1, 3).setBackground(opts.bg);
-    if (opts.bold) cell.setFontWeight('bold');
-    if (opts.italic) cell.setFontStyle('italic');
-    if (opts.height) sh.setRowHeight(r, opts.height);
-    if (opts.align) cell.setHorizontalAlignment(opts.align);
-    r++;
-    return cell;
-  }
-  function spacer(h) { sh.setRowHeight(r, h || 10); r++; }
-  // 색깔 박스로 된 단계 제목
-  function stepHeader(text, bg) {
-    sh.getRange(r, 1, 1, 3).setBackground(bg).setBorder(true, true, true, true, false, false, '#ffffff', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
-    const cell = sh.getRange(r, 2);
-    cell.setValue(text).setFontColor('#ffffff').setFontWeight('bold').setFontSize(13).setWrap(true);
-    sh.setRowHeight(r, 34);
+    row123().merge().setBackground(opts.bg || NAVY);
+    sh.getRange(r, 1).setValue(text)
+      .setFontColor(opts.fg || GOLD).setFontSize(opts.size || 20)
+      .setFontWeight('bold').setHorizontalAlignment('center')
+      .setVerticalAlignment('middle').setWrap(true);
     r++;
   }
+
+  function hdr(text, bg) {
+    row123().setBackground(bg || BLUE);
+    cell2().setValue(text)
+      .setFontColor('#ffffff').setFontWeight('bold').setFontSize(12).setWrap(true);
+    r++;
+  }
+
+  function body(text, opts) {
+    opts = opts || {};
+    if (opts.bg) row123().setBackground(opts.bg);
+    const c = cell2();
+    c.setValue(text).setWrap(true).setFontSize(11).setFontColor(opts.color || '#202124');
+    if (opts.bold) c.setFontWeight('bold');
+    if (opts.italic) c.setFontStyle('italic');
+    r++;
+  }
+
+  function spacer() { r++; }
 
   // ── 제목 배너 ──
-  sh.getRange(r, 1, 1, 3).merge().setBackground(NAVY);
-  sh.getRange(r, 1)
-    .setValue('🌙  달 모양 탐험대  ·  선생님 설정 가이드')
-    .setFontColor(GOLD).setFontWeight('bold').setFontSize(20)
-    .setHorizontalAlignment('center').setVerticalAlignment('middle');
-  sh.setRowHeight(r, 56); r++;
-  sh.getRange(r, 1, 1, 3).merge().setBackground('#2a3270');
-  sh.getRange(r, 1)
-    .setValue('이 사본 하나로 우리 반 학생 명단 관리 + 학습 결과 자동 수집이 됩니다. 아래 순서대로 한 번만 설정하세요!')
-    .setFontColor('#f4f1de').setFontSize(11).setHorizontalAlignment('center').setVerticalAlignment('middle');
-  sh.setRowHeight(r, 30); r++;
-  spacer(14);
+  banner('🌙  달 모양 탐험대  ·  시트 사용 설명');
+  banner('데이터는 앱 화면이 아니라 해당 시트 탭에서 직접 수정하세요. 탭 이름은 코드와 연결되어 있으므로 삭제하거나 변경하지 마세요.', { bg: '#2a3270', fg: '#f4f1de', size: 11 });
+  spacer();
 
-  // ── 무엇인가요 ──
-  row('💡 이건 무엇인가요?', { bold: true, size: 14, color: BLUE });
-  row('• 선생님은 자기 시트(이 사본)를 앱에 한 번만 "연결"합니다.', {});
-  row('• 그 다음부터 학생은 공유받은 "앱 주소"로 들어와 이름만 고르고 학습/도전합니다.', {});
-  row('• 결과(점수·정답률·날짜)는 이 사본의 「학습기록」 탭에만 쌓입니다. (다른 반과 안 섞임)', {});
-  spacer(16);
+  // ── 설정 단계 ──
+  body('🚀 사본을 만든 뒤 설정하기 (처음 한 번)', { bold: true, size: 14, color: BLUE });
+  spacer();
+  hdr('단계  /  내용', BLUE);
+  var steps = [
+    ['1. 학생 이름 입력', '「학생명단」 탭 B열에 학생 이름을 한 줄에 한 명씩 입력하세요. (A열 번호, D~F열 최신 기록은 자동 관리)'],
+    ['2. 웹앱 배포', '[확장 프로그램] → [Apps Script] → 오른쪽 위 [배포] → [새 배포] → ⚙️ → [웹 앱]\n   실행 계정: 나  /  액세스: 모든 사용자  →  [배포]  →  URL(.../exec) 복사'],
+    ['3. 권한 허용 (처음 1회)', '[권한 검토] → 본인 계정 → "확인되지 않은 앱"에서 [고급] → [(안전하지 않음)으로 이동] → [허용] → 배포 URL 확인\n   (고급이 안 보이면 창 최대화 후 시도, 반드시 사본을 만든 계정으로 진행)'],
+    ['4. 앱에 시트 연결', '앱 첫 화면 [⚙️ 선생님 설정] → 2단계 주소(.../exec) 붙여넣기 → [연결하기]\n   → "✓ 준비 완료" + 학생 명단이 드롭다운에 나오면 성공 🎉'],
+    ['5. 학생용 링크 공유', '⚙️ 설정에서 연결 완료 후 "학생용 링크"가 자동 생성됩니다.\n   [복사] 버튼으로 복사해서 학생에게 공유하세요.\n   학생이 그 링크로 접속하면 어떤 기기에서든 설정 없이 이름만 골라 바로 입장합니다.'],
+  ];
+  steps.forEach(function(s, i) {
+    body(s[0] + '\n' + s[1], { bg: i % 2 === 0 ? '#ffffff' : LIGHT });
+  });
+  spacer();
 
-  // ── 선생님 단계 ──
-  row('🚀 선생님 설정 (처음 한 번)', { bold: true, size: 14, color: BLUE });
-  spacer(6);
+  // ── 탭 목록 ──
+  body('📋 탭 목록', { bold: true, size: 14, color: BLUE });
+  hdr('탭 이름  /  역할  /  주의사항', BLUE);
+  var tabs = [
+    ['사용 설명', '시트 사용 안내 (이 탭)', '탭 이름을 변경하지 마세요'],
+    ['학생명단', '학생 이름 입력·관리 / 최신 학습 기록 자동 표시', 'B열에 이름만 입력, A·D~F열은 자동'],
+    ['학습기록', '학생별 학습 결과 자동 기록', '직접 수정하지 마세요 (앱이 자동 입력)'],
+  ];
+  tabs.forEach(function(t, i) {
+    body('【' + t[0] + '】  ' + t[1] + '\n⚠ ' + t[2], { bg: i % 2 === 0 ? '#ffffff' : LIGHT });
+  });
+  spacer();
 
-  stepHeader('1단계  ·  내 사본 만들기', BLUE);
-  row('상단 [파일] → [사본 만들기]. → 이 안내와 자동화 기능이 통째로 내 계정으로 복사됩니다.', {});
-  spacer(10);
+  // ── 메뉴·버튼 사용법 ──
+  body('📊 메뉴 · 버튼 사용법', { bold: true, size: 14, color: BLUE });
+  hdr('📊 달 모양 탐험대 대시보드 (시트 상단 메뉴)', NAVY);
+  var menuItems = [
+    '📋 사용 설명 보기/만들기 — 이 탭 새로 만들기',
+    '🗂 시트 초기화 / 만들기 — 학생명단·학습기록 탭 생성 또는 초기화',
+    '🔍 간단 통계 (사이드바) — 학습 통계 요약을 오른쪽 사이드바에서 보기',
+    '📈 전체 통계 보기 (대시보드) — 학생별·일별 상세 통계를 팝업으로 보기',
+    '🔄 학생명단 최신 기록 새로고침 — 학습기록 기반으로 학생명단 최신 점수 갱신',
+    '🔗 학생 접속 링크 보기 — 이 시트의 웹앱 주소(.../exec) 확인',
+  ];
+  menuItems.forEach(function(m, i) {
+    body('  ' + m, { bg: i % 2 === 0 ? '#ffffff' : LIGHT });
+  });
+  spacer();
 
-  stepHeader('2단계  ·  시트 만들기 / 권한 승인', GREEN);
-  row('내 사본 새로고침(F5) → [📊 달 모양 탐험대 대시보드] 메뉴 → [🗂 시트 초기화 / 만들기].', {});
-  row('권한 창: [권한 검토] → 내 계정 → "확인되지 않은 앱"에서 [고급] → [(안전하지 않음)으로 이동] → [허용].', {});
-  spacer(10);
+  // ── 사이드바 ──
+  body('🔍 사이드바 사용법', { bold: true, size: 14, color: BLUE });
+  body('[메뉴] → [🔍 간단 통계 (사이드바)] 클릭 → 참여 학생 수·총 도전 횟수·평균 점수·최근 학습 활동을 시트 오른쪽에서 확인합니다.\n[📈 자세한 통계 보기 →] 버튼을 누르면 전체 통계 대시보드 팝업이 열립니다.');
+  spacer();
 
-  stepHeader('3단계  ·  학생 이름 입력', ORANGE);
-  row('「학생명단」 탭 B열에 우리 반 학생 이름을 한 줄에 한 명씩. → 앱 드롭다운에 자동 표시됩니다.', {});
-  spacer(10);
+  // ── 저작권 ──
+  hdr('저작권 안내', NAVY);
+  body(
+    '본 구글 시트 및 관련 자료(앱, 코드, 콘텐츠 포함)의 저작권은 GEG 화성(깊이 e끌림)에게 있습니다.\n\n' +
+    '1. 본 자료는 책을 구입한 자에 한해 이용이 허락됩니다(교사일 경우는 해당 학급, 학부모일 경우 자녀).' +
+    ' 정상 경로로 구매하거나 배포받은 이용자라 하더라도 앱 코드의 무단 수정 및 2차 배포는 허용되지 않습니다.\n' +
+    '2. 다음 행위를 금합니다.\n' +
+    '   · 무단 복제·전송·배포·공유(타인에게 시트 링크 또는 사본 전달 포함)\n' +
+    '   · 영리 목적의 사용 또는 배포(학원에서의 사용 포함)\n' +
+    '   · 영리 목적의 재판매 또는 재배포\n' +
+    '   · 무단 수정·편집을 통한 2차적 저작물 작성\n' +
+    '3. 「저작권법」 제136조(벌칙) 제1항 제1호에 따라, 저작재산권을 복제·공연·공중송신·전시·배포·대여·2차적저작물 작성의 방법으로 침해한 자는' +
+    ' 5년 이하의 징역 또는 5천만원 이하의 벌금에 처하거나 이를 병과할 수 있습니다.\n\n' +
+    'ⓒ 2026 GEG 화성(깊이 e끌림)',
+    { italic: true, color: '#5f6368' }
+  );
 
-  stepHeader('4단계  ·  내 시트를 웹앱으로 배포 (주소 받기)', PURPLE);
-  row('[확장 프로그램] → [Apps Script] → 오른쪽 위 [배포] → [새 배포] → ⚙️ → [웹 앱].', {});
-  row('• 실행 계정: 나      • 액세스 권한: 모든 사용자   ← 꼭 "모든 사용자"!', { bold: true, color: RED });
-  row('[배포] → 나오는 URL(.../exec)을 복사. (이게 "내 시트 주소")', {});
-  spacer(10);
-
-  stepHeader('5단계  ·  앱에 내 시트 연결하기', NAVY);
-  if (APP_BASE_URL) {
-    row('공유받은 앱 주소(' + APP_BASE_URL + ')를 엽니다.', {});
-  } else {
-    row('공유받은 앱 주소(GitHub 주소)를 엽니다.', {});
-  }
-  row('첫 화면 [⚙️ 시트 연결 설정] → 4단계 주소(.../exec) 붙여넣기 → [💾 저장하고 연결].', {});
-  row('→ "✓ 준비 완료" + 우리 반 이름이 드롭다운에 나오면 성공! 🎉', { bold: true, color: GREEN });
-  row('★ 한 번 연결하면 그 기기에 기억됩니다. 이후 학생은 같은 주소로 들어와 이름만 고르면 됩니다.', { bold: true, color: RED });
-  row('   (학생이 각자 다른 기기를 쓰면, 그 기기에서도 선생님이 한 번 연결해 주세요. 학생은 설정을 만지지 않습니다.)', { color: '#5f6368', italic: true });
-  spacer(16);
-
-  // ── FAQ ──
-  row('❓ 자주 묻는 질문', { bold: true, size: 14, color: BLUE });
-  function faq(q, a) {
-    row('Q. ' + q, { bold: true, color: NAVY, bg: LIGHT, height: 24 });
-    row('A. ' + a, { height: 36 });
-    spacer(4);
-  }
-  faq('학생이 뭔가 설정하거나 주소를 입력해야 하나요?',
-      '아니요. 연결은 선생님이 [⚙️ 설정]에서 한 번만 합니다. 학생은 앱 주소로 들어와 이름만 고릅니다.');
-  faq('학생 결과가 저장이 안 돼요.',
-      'Apps Script [배포] → [배포 관리] → 편집(연필) → 버전 "새 버전" → [배포]을 실행하고, 액세스 권한이 "모든 사용자"인지 확인하세요.');
-  faq('내 데이터가 다른 선생님께 보이나요?',
-      '아니요. 결과는 "내 사본" 시트에만 저장됩니다. 앱 화면만 공유될 뿐 데이터는 분리됩니다.');
-  faq('학생이 다시 도전하면 이전 기록이 사라지나요?',
-      '사라지지 않습니다. 「학습기록」 탭에 매번 새 줄로 쌓이고, 「학생명단」에는 가장 최근 점수가 표시됩니다.');
-  spacer(14);
-
-  row('🌟 통계 보기: [📊 달 모양 탐험대 대시보드] 메뉴에서 사이드바 요약과 전체 통계 대시보드를 볼 수 있어요.',
-      { bg: '#e8f0fe', color: BLUE, bold: true, height: 30 });
-
-  sh.setFrozenRows(2);
+  sh.setFrozenRows(1);
   sh.getRange(1, 1).activate();
+
+  try {
+    SpreadsheetApp.getUi().alert('📋 「사용 설명」 탭을 새로 만들었습니다.\n맨 앞 탭에서 안내를 확인하세요.');
+  } catch (_) {}
   return sh;
 }
 
@@ -506,6 +549,15 @@ function getStatsData() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const roster = ss.getSheetByName(SHEET_ROSTER);
   const records = ss.getSheetByName(SHEET_RECORDS);
+
+  if (!roster || !records) {
+    return {
+      totalRoster: 0, participatedStudents: 0, totalAttempts: 0,
+      avgScore: '0.0', avgPercent: 0, maxTotal: 7,
+      scoreDistribution: [0, 0, 0, 0, 0, 0, 0, 0],
+      recentActivity: [], studentList: [], dailyActivity: [],
+    };
+  }
 
   const rosterData = roster.getDataRange().getValues();
   const totalRoster = Math.max(0, rosterData.slice(1).filter(function (r) {
@@ -694,7 +746,8 @@ function load() {
   google.script.run.withSuccessHandler(populate).withFailureHandler(onError).getStatsData();
 }
 function onError(err) {
-  document.getElementById('loading').textContent = '⚠ 데이터 불러오기 실패: ' + err.message;
+  const msg = (err && err.message) || String(err) || '알 수 없는 오류';
+  document.getElementById('loading').textContent = '⚠ 데이터 불러오기 실패: ' + msg;
 }
 function populate(data) {
   document.getElementById('participated').textContent = data.participatedStudents;
@@ -878,7 +931,8 @@ function load() {
   google.script.run.withSuccessHandler(onData).withFailureHandler(onError).getStatsData();
 }
 function onError(err) {
-  document.getElementById('loading').textContent = '⚠ 데이터 불러오기 실패: ' + err.message;
+  const msg = (err && err.message) || String(err) || '알 수 없는 오류';
+  document.getElementById('loading').textContent = '⚠ 데이터 불러오기 실패: ' + msg;
 }
 function onData(data) {
   pendingData = data;
