@@ -402,15 +402,15 @@
   .diary-toggle:hover { background: rgba(255,209,102,0.15); }
   .diary-toggle .arrow {
     font-size: 16px;
-    color: #ef8354;
-    background: rgba(239,131,84,0.15);
+    color: #6cd5b3;
+    background: rgba(108,213,179,0.15);
     padding: 6px 14px;
     border-radius: 16px;
-    border: 1px solid rgba(239,131,84,0.5);
+    border: 1px solid rgba(108,213,179,0.5);
     white-space: nowrap;
   }
   .diary-toggle:hover .arrow {
-    background: rgba(239,131,84,0.3);
+    background: rgba(108,213,179,0.3);
     color: #fff;
   }
   .diary-toggle .hint-text {
@@ -910,12 +910,12 @@ function jsonpCall(params, onSuccess, onError) {
 }
 
 function getMockStudents() {
-  // 로컬 미리보기 전용 — Apps Script 웹앱으로 배포되면 사용되지 않습니다.
-  return [
-    { name: '(로컬 미리보기) 김민준', lastDate: '2026-05-15', lastScore: 8, lastTotal: 10 },
-    { name: '(로컬 미리보기) 이서연', lastDate: '2026-05-16', lastScore: 7, lastTotal: 10 },
-    { name: '(로컬 미리보기) 박지호', lastDate: null, lastScore: null, lastTotal: null },
-  ];
+  // 데모(무료 체험) 모드 — 시트 미연동 시 누구나 골라 체험. 학생1 ~ 학생30.
+  const list = [];
+  for (let i = 1; i <= 30; i++) {
+    list.push({ name: '학생' + i, lastDate: null, lastScore: null, lastTotal: null });
+  }
+  return list;
 }
 
 function loadStudents() {
